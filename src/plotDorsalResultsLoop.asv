@@ -64,7 +64,7 @@ for plotIndex = 1:nPlots
     
     paramValue = paramRange(plotIndex);
     
-    %use hill params from 1-7ish
+    %search hill
     plotOpts = {'modelType', modelType,...
          'fixHill', paramValue};
     

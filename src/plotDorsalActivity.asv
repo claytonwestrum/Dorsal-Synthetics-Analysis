@@ -43,8 +43,7 @@ function [fit, model] = plotDorsalActivity(x, y,activity, nc,...
     if nc < 6
         nc = nc + 11;
     end
-    
-    title({DataType, [' nc: ', num2str(nc)]});
+    title([DataType, ' nc',num2str(nc)]);
     %p(1)=rate coefficient, p(2)=kd, p(3)=hill coefficient p(4) y offset
     %p(5) [pol]/kd_pol
 %     legend(DataType, {['fit: ',num2str(round(fit))], 'amplitude, KD(au), n, y offset'})

@@ -25,26 +25,25 @@ y = y.*yScale;
 
 
 %rate, kd, hill, y offset
-p0 = [max(y),max(x)/2, 1, 0];
-lb = [0, 1000.*xScale, 2, -max(y)];
-ub = [max(y)*2, Inf, 6, max(y)*10];
+p0 = [max(y) ; max(x)/2 ; 1 ; 0];
+lb = [0; 1000.*xScale; 2; -max(y)];
+ub = [max(y)*2; Inf; 6; max(y)*10];
+
+%eg for accessing use nlargs{'KD', 'ub'}
+nlargs = table(p0, lb, ub, 'RowNames', {'rate', 'KD', 'hill', 'y offset'},...
+    'VariableNames', {'p0', 'lb', 'ub'});
 
 for k = 1:length(varargin)
-    if strcmpi(varargin{k}, 'fix2')
-        kd = varargin{k+1};
-        p0(2) = kd; lb(2) = kd; ub(2) = kd;
-    elseif strcmpi(varargin{k}, 'fix1')
-        r = varargin{k+1};
-        p0(1) = r; lb(1) = r; ub(1) = r;
-    elseif strcmpi(varargin{k}, 'fix4')
-        off = varargin{k+1};
-        p0(4) = off; lb(4) = off; ub(4) = off;
-    elseif strcmpi(varargin{k}, 'fix3')
-        n = varargin{k+1};
-        p0(3) = n; lb(3) = n; ub(3) = n;
-    elseif strcmpi(varargin{k}, 'fix5')
-        w = varargin{k+1};
-        p0(5) = w; lb(5) = w; ub(5) = w;
+    if strcmpi(varargin{k}, 'fixKD')
+        nlargs{'KD', : } = varargin{k+1};
+    elseif strcmpi(varargin{k}, 'fixRate')
+        nlargs{'rate', : } = varargin{k+1};
+    elseif strcmpi(varargin{k}, 'fixYOffset')
+        nlargs{'y offset', : } = varargin{k+1};
+    elseif strcmpi(varargin{k}, 'fixHill')
+        nlargs{'hill', : } = varargin{k+1};
+    elseif strcmpi(varargin{k}, 'fixW')
+        nlargs{'w', :} = varargin{k+1};
     elseif strcmpi(varargin{k}, 'modelType')
         modelType = varargin{k+1};
     end
@@ -55,24 +54,28 @@ switch modelType
     case 'hill'
         %nothing extra to do
     case 'simpleWithPol'
-        %add a fifth parameter
-        p0 = [p0, 1]; lb = [lb, 0]; ub = [ub, Inf];
+        %add a fifth parameter. this is w = num pol/kd pol
+        nlargs{'w', : } = [1, 0, Inf];
         %no y offset for this model
-        off = 0;
-        p0(4) = off; lb(4) = off; ub(4) = off;
+        nlargs{'y offset', :} = [0 0 0]; 
     case 'mwcNoPol'
-        off = 0;
-        p0(4) = off; lb(4) = off; ub(4) = off;
+        nlargs{'y offset', :} = [0 0 0]; 
     otherwise
         error('no valid modeltype')
 end
 
 model = dorsalFitFunction(modelType);
 
-options = optimoptions(@lsqcurvefit, 'MaxFunctionEvaluations', length(p0)*1000, 'MaxIterations', 4000,...
-    'OptimalityTolerance',1E-10,'FunctionTolerance',1E-10, 'Display','none');
+options = optimoptions(@lsqcurvefit, 'MaxFunctionEvaluations',...
+    size(nlargs, 1)*1000, 'MaxIterations', 4000,...
+    'OptimalityTolerance',1E-10,'FunctionTolerance',1E-10,...
+    'Display','none');
 
-fit = lsqcurvefit(model, p0, x, y, lb, ub, options);
+fit = lsqcurvefit(model, nlargs.p0, x, y, nlargs.lb, nlargs.ub, options);
+
+%gonna transpose here for compatibility with
+%other functions
+fit = fit';
 
 %rescale
 fit(2) = fit(2)./xScale; %kd (x when y is half the plateau)
