@@ -18,6 +18,7 @@ prefixes = thisProject.includedExperimentNames;
 compiledProjects = cell(1, length(prefixes));
 
 for k = 1:length(prefixes)
+    integrateSchnitzFluo(prefixes{k})
     TrackmRNADynamics(prefixes{k}, 'retrack');
     CompileParticles(prefixes{k},  'minBinSize', 0, 'MinParticles', 0,...
         'yToManualAlignmentPrompt');
@@ -34,7 +35,7 @@ end
 
 dorsalResults = createDorsalResults(DataType); 
 
-plotDorsalResultsLoop(DataType, 'frac', 1:6, 'hill')
+% plotDorsalResultsLoop(DataType, 'frac', 1:6, 'hill')
 % plotDorsalResultsLoop(DataType, activity)
 
 end
