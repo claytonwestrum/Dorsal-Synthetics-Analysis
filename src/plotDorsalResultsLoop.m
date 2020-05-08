@@ -29,7 +29,9 @@ end
 nc = 12;
 R = 1; %the rate/amplitude parameter of the models in fitDorsalActivity
 xRange = [0 4000];
-legendVisible = 'off';
+legendVisible = 'on';
+
+nlargs = table;
 %options must be specified as name, value pairs. unpredictable errors will
 %occur, otherwise.
 for i = 1:2:(numel(varargin)-1)
@@ -66,7 +68,7 @@ for plotIndex = 1:nPlots
     
     %use hill params from 1-7ish
     plotOpts = {'modelType', modelType,...
-         'fixHill', paramValue};
+         'fixHill', paramValue, 'fixRate', 1};
     
     plotDorsalActivity(dorsalFluoBins, dorsalActivity, activityType, nc,...
         dataType, dorsalActivity_mean, dorsalActivity_SE, shouldPlotScatter,...

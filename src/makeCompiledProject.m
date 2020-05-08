@@ -89,6 +89,7 @@ for s = approvedSchnitzes
         end
 end
 
+assert(~isempty(compiledProject))
 
 save([resultsFolder,filesep,Prefix,filesep,'compiledProject.mat'], 'compiledProject');
 

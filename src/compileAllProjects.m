@@ -7,7 +7,7 @@ thisProject = liveProject(DataType) %#ok<NOPRT>
 %% Validate experiments included in the analysis
 hasAllPushed = [thisProject.hasSpots, thisProject.hasParticles,...
     thisProject.hasSchnitzcells, thisProject.hasCompiledParticles,...
-    thisProject.hasAnaphaseFramesAnnotated];
+    thisProject.anaphaseFramesAnnotated];
 
 assert( all(hasAllPushed) ); 
 
@@ -18,7 +18,7 @@ prefixes = thisProject.includedExperimentNames;
 compiledProjects = cell(1, length(prefixes));
 
 for k = 1:length(prefixes)
-    TrackmRNADynamics(prefixes{k}, 'noretrack');
+    TrackmRNADynamics(prefixes{k}, 'retrack');
     CompileParticles(prefixes{k},  'minBinSize', 0, 'MinParticles', 0,...
         'yToManualAlignmentPrompt');
     alignCompiledParticlesByAnaphase(prefixes{k});
@@ -32,10 +32,9 @@ for k = 1:length(prefixes)
     compiledProjects{k} = makeCompiledProject(prefixes{k});
 end
 
-dorsalResults = plotFracByDlFluo2(DataType); 
+dorsalResults = createDorsalResults(DataType); 
 
-activity = '';
-plotDorsalResultsLoop(DataType,  'fraction', [.1], 'legendVisible', 'on', 'modelType', 'simpleWithPol')
-plotDorsalResultsLoop(DataType, activity)
+plotDorsalResultsLoop(DataType, 'frac', 1:6, 'hill')
+% plotDorsalResultsLoop(DataType, activity)
 
 end
