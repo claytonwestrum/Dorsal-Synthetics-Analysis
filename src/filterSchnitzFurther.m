@@ -3,6 +3,8 @@ function schnitzcells = filterSchnitzFurther(schnitzcells)
 % Disapprove nuclei without
 %fluos.
 
+schnitzcellsOld = schnitzcells;
+
 for s = 1:length(schnitzcells)
     
     if isempty(schnitzcells(s).Fluo)
@@ -10,5 +12,8 @@ for s = 1:length(schnitzcells)
     end
     
 end
+
+schnitzcellsSizeUnchanged(schnitzcellsOld, schnitzcells);
+
 
 end
