@@ -38,11 +38,8 @@ for e = 1:length(allData)
         allData(e).Particles.nc14];
     
     schnitzcells = allData(e).Particles.schnitzcells;
-    schnitzcellsOld = schnitzcells;
-    
     CompiledParticles = allData(e).Particles.CompiledParticles;
     Ellipses = allData(e).Particles.Ellipses;
-    
     
     %to speed this up, remove unnecessary schnitzcells fields
     schnitzcells = removeSchnitzcellsFields(schnitzcells);
@@ -54,9 +51,7 @@ for e = 1:length(allData)
 
     
     %clear out any existing compiledparticle entries
-    if isfield(schnitzcells, 'compiledParticle')
-        schnitzcells = rmfield(schnitzcells, 'compiledParticle');
-    end
+    schnitzcells = rmfield(schnitzcells, 'compiledParticle');
     
     
     for p = 1:length(CompiledParticles{ch})
@@ -94,10 +89,10 @@ for e = 1:length(allData)
     
     %do some general QC filtering
     schnitzcells = filterSchnitz(schnitzcells, imSize);
-        
+    
     %do some dv specific filtering on the approved schnitzes
     schnitzcells = filterSchnitzFurther(...
-        schnitzcells);
+        schnitzcells([schnitzcells.Approved]));
     
     approvedSchnitzes = find([schnitzcells.Approved]);
     
@@ -133,8 +128,6 @@ for e = 1:length(allData)
             schnitzcells(s).FluoFeature = NaN;
         end
         
-        schnitzcellsSizeUnchanged(schnitzcellsOld, schnitzcells);
-
         
         fluoFeatures = [fluoFeatures, schnitzcells(s).FluoFeature];
         
@@ -162,8 +155,6 @@ for e = 1:length(allData)
         
     end
     
-    
-    
     save([resultsFolder,filesep,Prefixes{e},filesep,Prefixes{e},'_lin.mat'], 'schnitzcells');
     save([resultsFolder,filesep,Prefixes{e},filesep,'Ellipses.mat'], 'Ellipses');
     
@@ -184,9 +175,6 @@ for e = 1:length(allData)
     end
     
     
-    checkSchnitzcellsCompiledParticlesConsistency(...
-    schnitzcells,...
-    CompiledParticles)
     
 end
 

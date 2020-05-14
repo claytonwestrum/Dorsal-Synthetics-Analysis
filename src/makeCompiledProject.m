@@ -2,6 +2,8 @@ function compiledProject = makeCompiledProject(Prefix)
 
 [~, resultsFolder] = getDorsalFolders;
 
+liveExperiment = LiveExperiment(Prefix); 
+
 load([resultsFolder,filesep,Prefix,filesep,'FrameInfo.mat'], 'FrameInfo')
 load([resultsFolder,filesep,Prefix,filesep,Prefix,'_lin.mat'], 'schnitzcells')
 load([resultsFolder,filesep,Prefix,filesep,'CompiledParticles.mat'], 'CompiledParticles')
@@ -14,7 +16,7 @@ end
 
 if ~isfield(schnitzcells, 'TimeSinceAnaphase')
     
-    ncFrames = getNCFrames(Prefix, resultsFolder);
+    ncFrames = [zeros(1,8),liveExperiment.anaphaseFrames'];
     schnitzcells = addRelativeTimeToSchnitzcells(...
         schnitzcells, FrameInfo, ncFrames);
     
