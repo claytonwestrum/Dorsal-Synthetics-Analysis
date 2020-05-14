@@ -5,13 +5,14 @@ dorsalResultsDatabase = struct;
 
 for i = 1:length(dataTypes)
     
-    try
         [~, resultsFolder, ~] = getDorsalPrefixes(dataTypes{i});
-        load([resultsFolder,filesep,dataTypes{i},filesep,'dorsalResults.mat'], 'dorsalResults')
-    catch
-        warning(['skipping: ',dataTypes{i}])
-        continue
-    end
+        
+        if exist([resultsFolder,filesep,dataTypes{i},filesep,'dorsalResults.mat'], 'file')
+            load([resultsFolder,filesep,dataTypes{i},filesep,'dorsalResults.mat'], 'dorsalResults')
+        else
+            warning(['skipping: ',dataTypes{i}])
+            continue
+        end
  
     dorsalResultsClean = addKeysToDorsalResults(dorsalResults);
     

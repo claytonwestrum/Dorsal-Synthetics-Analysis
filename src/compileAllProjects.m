@@ -18,7 +18,7 @@ prefixes = thisProject.includedExperimentNames;
 compiledProjects = cell(1, length(prefixes));
 
 for k = 1:length(prefixes)
-    integrateSchnitzFluo(prefixes{k})
+%         integrateSchnitzFluo(prefixes{k})
     TrackmRNADynamics(prefixes{k}, 'retrack');
     CompileParticles(prefixes{k},  'minBinSize', 0, 'MinParticles', 0,...
         'yToManualAlignmentPrompt');
