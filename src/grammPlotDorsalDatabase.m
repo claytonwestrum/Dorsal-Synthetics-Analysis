@@ -13,10 +13,13 @@ catch
     dorsalResultsDatabase = createDorsalResultsDatabase(dataTypes);
 end
 
+%% just 1dg11 (and 2x) with linear fits figure
+figure(1);
 g=gramm('x',dorsalResultsDatabase.dorsalFluoBins,...
     'y',dorsalResultsDatabase.meanFracFluoEmbryo,...
-     'subset', dorsalResultsDatabase.nc==12, 'color', dorsalResultsDatabase.mother);
-
+     'subset', dorsalResultsDatabase.nc==12 &...
+     cellfun(@(x) strcmpi(x, '1Dg11'), dorsalResultsDatabase.enhancer),...
+     'color', dorsalResultsDatabase.mother);
 % Subdivide the data in subplots horizontally by region of origin
 g.facet_grid(dorsalResultsDatabase.enhancer, [])
 g.facet_wrap(dorsalResultsDatabase.enhancer, 'ncols', 2);
@@ -25,12 +28,30 @@ g.geom_point()
 % Plot linear fits of the data with associated confidence intervals
 g.stat_glm()
 % g.stat_summary('type', 'sem');
-
  %set axis labels and legend labels
  g.set_names('x','Dorsal Concentration (au)','y','Fraction Active', 'row', '', 'column', '');
-
 grammFigurePBoC(g);
-
 g.draw()
+
+%%
+figure(2);
+g=gramm('x',dorsalResultsDatabase.dorsalFluoBins,...
+    'y',dorsalResultsDatabase.fracFluoEmbryo,...
+     'subset', dorsalResultsDatabase.nc==12,...
+     'color', dorsalResultsDatabase.mother);
+% Subdivide the data in subplots horizontally by region of origin
+g.facet_grid(dorsalResultsDatabase.enhancer, [])
+g.facet_wrap(dorsalResultsDatabase.enhancer, 'ncols', 2);
+% Plot raw data as points
+g.geom_point()
+% Plot linear fits of the data with associated confidence intervals
+g.stat_glm()
+% g.stat_summary('type', 'sem');
+ %set axis labels and legend labels
+ g.set_names('x','Dorsal Concentration (au)','y','Fraction Active', 'row', '', 'column', '');
+grammFigurePBoC(g);
+g.draw()
+
+
 
 end

@@ -2,12 +2,13 @@ function dorsalResults = addKeysToDorsalResults(dorsalResults)
 
  dataType = dorsalResults{1}.DataType;
  
-    for ncIndex = 1:3
+ %nc14 is problematic and mostly uninteresting. let's just do 12 and 13. 
+    for ncIndex = 1:2
         
         %this field is problematic. 
          dorsalResults{ncIndex} = rmfield(dorsalResults{ncIndex}, 'allmrnasnomean');
 
-        try
+%         try
             setLength = length(dorsalResults{ncIndex}.dorsalFluoBins); 
             dorsalResults{ncIndex} = rmfield(dorsalResults{ncIndex}, 'DataType');
             [dorsalResults{ncIndex}.DataType{1:setLength}] = deal(dataType);
@@ -37,9 +38,9 @@ function dorsalResults = addKeysToDorsalResults(dorsalResults)
                 dorsalResults{ncIndex}.dorsalFluoBins = dorsalResults{ncIndex}.dorsalFluoBins';
             end
             
-        catch
-            warning(['skipping: ', num2str(ncIndex)])
-        end
+%         catch
+%             warning(['skipping: ', num2str(ncIndex)])
+%         end
         
     end
     
