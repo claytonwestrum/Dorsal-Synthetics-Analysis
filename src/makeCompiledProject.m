@@ -61,7 +61,8 @@ for s = approvedSchnitzes
                 compiledProject(n).particleOffset = CompiledParticles(p).Off;
                 compiledProject(n).particleFluo3D = CompiledParticles(p).Fluo3DRaw;
                 
-                fluo = compiledProject(n).particleFluo3D;
+%                 fluo = compiledProject(n).particleFluo3D;
+                fluo = compiledProject(n).particleFluo3Slice;
                 tau = compiledProject(n).particleTimeSinceAnaphase;
                 
                 %some preliminary additional statistics about the spot

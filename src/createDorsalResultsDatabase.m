@@ -7,12 +7,14 @@ for i = 1:length(dataTypes)
     
     [~, resultsFolder, ~] = getDorsalPrefixes(dataTypes{i});
     
-    if exist([resultsFolder,filesep,dataTypes{i},filesep,'dorsalResults.mat'], 'file')
-        load([resultsFolder,filesep,dataTypes{i},filesep,'dorsalResults.mat'], 'dorsalResults')
-    else
-        warning(['skipping: ',dataTypes{i}])
-        continue
-    end
+    dorsalResults = createDorsalResults(dataTypes{i}); 
+
+%     if exist([resultsFolder,filesep,dataTypes{i},filesep,'dorsalResults.mat'], 'file')
+%         load([resultsFolder,filesep,dataTypes{i},filesep,'dorsalResults.mat'], 'dorsalResults')
+%     else
+%         warning(['skipping: ',dataTypes{i}])
+%         continue
+%     end
     
     dorsalResultsClean = addKeysToDorsalResults(dorsalResults);
     

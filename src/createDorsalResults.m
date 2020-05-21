@@ -2,8 +2,8 @@ function dorsalResults = createDorsalResults(DataType, varargin)
 
 displayTiles = false;
 
-minNuclei =1; %minimum total nuclei for a bin to be plottable
-minEmbryos = 1; %minimum number of nuclei per bin
+minNuclei = 3; %minimum total nuclei for a bin to be plottable
+minEmbryos = 2; %minimum number of embryos per bin
 
 for i = 1:length(varargin)
     if strcmpi(varargin{i}, 'displayTiles')
@@ -32,7 +32,7 @@ dorsalResults = {};
 
 compiledProjects = {};
 for e = 1:nEmbryos
-    
+
     load([resultsFolder,filesep,prefixes{e},filesep,'compiledProject.mat'], 'compiledProject');
     
     compiledProjects{e} = compiledProject;
@@ -104,7 +104,8 @@ for e = 1:nEmbryos
         end
         
         
-        dorsalResults{nc-11}.fracFluoEmbryo(:, e) = npartFluoEmbryo{nc-11}(:,e)./nschnitzFluoEmbryo{nc-11}(:,e);
+        dorsalResults{nc-11}.fracFluoEmbryo(:, e) = npartFluoEmbryo{nc-11}(:,e) ./...
+            nschnitzFluoEmbryo{nc-11}(:,e);
         
     end
     

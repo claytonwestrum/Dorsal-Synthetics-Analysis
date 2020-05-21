@@ -17,17 +17,18 @@ prefixes = thisProject.includedExperimentNames;
 
 compiledProjects = cell(1, length(prefixes));
 
-for k = 1:length(prefixes)
-    %to prevent issues with stuff in memory
-    clear getMovieMat;
-    clear getHisMat;
-%     fit3DGaussiansToAllSpots(prefixes{k}, 1);
-%     integrateSchnitzFluo(prefixes{k});
-  %  TrackmRNADynamics(prefixes{k});
-    CompileParticles(prefixes{k},  'minBinSize', 0, 'MinParticles', 0,...
-        'yToManualAlignmentPrompt');
-    alignCompiledParticlesByAnaphase(prefixes{k});
-end
+% 
+% for k = 1:length(prefixes)
+%     %to prevent issues with stuff in memory
+%     clear getMovieMat;
+%     clear getHisMat;
+% %     fit3DGaussiansToAllSpots(prefixes{k}, 1);
+% %     integrateSchnitzFluo(prefixes{k});
+%   %  TrackmRNADynamics(prefixes{k});
+%     CompileParticles(prefixes{k},  'minBinSize', 0, 'MinParticles', 0,...
+%         'yToManualAlignmentPrompt');
+%     alignCompiledParticlesByAnaphase(prefixes{k});
+% end
 
 addDVStuffToSchnitzCells(DataType)
 

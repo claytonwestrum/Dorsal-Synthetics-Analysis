@@ -103,12 +103,8 @@ for e = 1:length(Prefixes)
                 allDorsal = [allDorsal, dlfluo];
             end
             
-            if ~strcmpi(DataType, '1Dg')
                 dif = dlfluo - dlfluobins;
-            else
-                dif = (2*dlfluo) - dlfluobins;
-            end
-            
+
             [~,dlfluobin] = min(dif(dif>0));
             
             if ~isempty(dlfluobin)
