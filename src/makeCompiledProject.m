@@ -43,6 +43,8 @@ for s = approvedSchnitzes
         compiledProject(n).dorsalFluoFeature = schnitzcells(s).FluoFeature;
         compiledProject(n).dorsalFluoTimeTrace= schnitzcells(s).FluoTimeTrace;
         compiledProject(n).nuclearTimeSinceAnaphase = schnitzcells(s).timeSinceAnaphase;
+        compiledProject(n).prefix = Prefix;
+        compiledProject(n).index = n;
         
         
         %particle compilation
@@ -59,7 +61,12 @@ for s = approvedSchnitzes
                 compiledProject(n).particleFluo= CompiledParticles(p).Fluo;
                 compiledProject(n).particleFluo3Slice = CompiledParticles(p).Fluo3;
                 compiledProject(n).particleOffset = CompiledParticles(p).Off;
-                compiledProject(n).particleFluo3D = CompiledParticles(p).Fluo3DRaw;
+                if isfield(CompiledParticles, 'Fluo3DRaw')
+                    compiledProject(n).particleFluo3D = CompiledParticles(p).Fluo3DRaw;
+                else
+                    compiledProject(n).particleFluo3D = nan(1, length(CompiledParticles(p).Frame));
+                    warning("missing gauss 3D intensities for" + Prefix);
+                end
                 
 %                 fluo = compiledProject(n).particleFluo3D;
                 fluo = compiledProject(n).particleFluo3Slice;

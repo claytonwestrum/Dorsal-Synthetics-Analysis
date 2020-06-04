@@ -3,19 +3,14 @@ function dorsalResultsDatabase =...
 
 dorsalResultsDatabase = struct;
 
+combinedCompiledProjects_allEnhancers = [];
+
 for i = 1:length(dataTypes)
     
-    [~, resultsFolder, ~] = getDorsalPrefixes(dataTypes{i});
+    [~, resultsFolder] = getDorsalFolders;
     
     dorsalResults = createDorsalResults(dataTypes{i}); 
 
-%     if exist([resultsFolder,filesep,dataTypes{i},filesep,'dorsalResults.mat'], 'file')
-%         load([resultsFolder,filesep,dataTypes{i},filesep,'dorsalResults.mat'], 'dorsalResults')
-%     else
-%         warning(['skipping: ',dataTypes{i}])
-%         continue
-%     end
-    
     dorsalResultsClean = addKeysToDorsalResults(dorsalResults);
     
     %skipping nc14
@@ -53,7 +48,18 @@ for i = 1:length(dataTypes)
         end
         
     end %nc loop
-    
+    %%
+    %create a database of all traces for every experiment. 
+    load([resultsFolder,filesep,DataType,filesep,'combinedCompiledProjects.mat'], 'combinedCompiledProjects');
+    if i == 1
+        combinedCompiledProjects_allEnhancers = combinedCompiledProjects; 
+    else
+        combinedCompiledProjects_allEnhancers =...
+            [combinedCompiledProjects_allEnhancers, combinedCompiledProjects]; %#ok<AGROW>
+    end
+    clear combinedCompiledProjects; %to ensure we don't accidentally add the same set twice
+    %%
+
 end %dataType loop
 
 save([resultsFolder, filesep, 'dorsalResultsDatabase.mat'], '-v6');

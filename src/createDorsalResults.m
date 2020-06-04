@@ -32,7 +32,7 @@ dorsalResults = {};
 
 compiledProjects = {};
 for e = 1:nEmbryos
-
+    
     load([resultsFolder,filesep,prefixes{e},filesep,'compiledProject.mat'], 'compiledProject');
     
     compiledProjects{e} = compiledProject;
@@ -55,7 +55,7 @@ for e = 1:nEmbryos
                 
                 cn = compiledProject(nucleiOfInterest(n));
                 
-                tempNucleiOfInterest = [tempNucleiOfInterest, nucleiOfInterest(n)];
+                tempNucleiOfInterest = [tempNucleiOfInterest, nucleiOfInterest(n)]; %#ok<*AGROW>
                 
                 if ~isempty(cn.particleFrames)
                     particlesOfInterest = particlesOfInterest + 1;
@@ -90,7 +90,7 @@ for e = 1:nEmbryos
             npartFluoEmbryo{nc-11}(bin, e) = length(find([compiledProject.cycle] == nc & [compiledProject.dorsalFluoBin] == bin  & ~cellfun(@isempty, {compiledProject.particleFrames})));
             dorsalResults{nc-11}.allmrnasEmbryo(bin, e) = nanmean(spotAccumulatedFluo);
             dorsalResults{nc-11}.alldurationsEmbryo(bin, e) = nanmean(spotDurations);
-           dorsalResults{nc-11}. allTurnOnsEmbryo(bin, e) = nanmean(spotTurnOnTimes);
+            dorsalResults{nc-11}. allTurnOnsEmbryo(bin, e) = nanmean(spotTurnOnTimes);
             dorsalResults{nc-11}.allMaxFluoEmbryo(bin, e) = nanmean(spotMaxFluos);
             
             %             if nschnitzFluoEmbryo{nc-11}(bin, e) >= 1
@@ -157,13 +157,13 @@ for nc = 1:2
     dorsalResults{nc}.seTurnOnsEmbryo = filteredWeightedSE(dorsalResults{nc}.allTurnOnsEmbryo);
     
     dorsalResults{nc}.meanAllMaxFluoEmbryo = filteredWeightedMean(dorsalResults{nc}.allMaxFluoEmbryo);
-   dorsalResults{nc}. seAllMaxFluoEmbryo = filteredWeightedSE(dorsalResults{nc}.allMaxFluoEmbryo);
-   
+    dorsalResults{nc}. seAllMaxFluoEmbryo = filteredWeightedSE(dorsalResults{nc}.allMaxFluoEmbryo);
+    
     dorsalResults{nc}.dorsalFluoBins  = dlfluobins;
     dorsalResults{nc}.DataType = DataType;
     
 end
-% 
+%
 % allmrnasnc12 = dorsalResults{nc}.allmrnasnomean{:};
 % lens = [];
 % for b = 1:nBins
