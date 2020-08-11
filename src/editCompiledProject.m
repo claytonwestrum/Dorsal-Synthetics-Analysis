@@ -44,7 +44,7 @@ for i = 1:length(prefixes)
     currentParticle = 1;
     
     
-    while (currentCharacter ~= 'x')
+    while (currentCharacter ~= 'x') && ~isempty(particles)
         
         currentParticleIndex = particles(currentParticle).index;
         

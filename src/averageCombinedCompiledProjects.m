@@ -1,6 +1,29 @@
-function averagedTimeTraces = averageCombinedCompiledProjects(DataType)
+function averagedTimeTraces =...
+    averageCombinedCompiledProjects(DataType, onlyIncludeTrapezoids)
+
+%onlyInclude trapezoids is a flag to make plots only including 
+%traces flagged as obviously trapezoids and non-basal.
 
 [~, resultsFolder] = getDorsalFolders;
+thisProject = LiveProject(DataType) %#ok<NOPRT>
+prefixes = thisProject.includedExperimentNames;
+
+for k = 1:length(prefixes) 
+    load([resultsFolder,filesep,prefixes{k},filesep,'compiledProject.mat'], 'compiledProject');    
+    if k == 1
+        combinedCompiledProjects = compiledProject; 
+    else
+        try
+            combinedCompiledProjects = [combinedCompiledProjects, compiledProject]; %#ok<AGROW>
+        catch
+            [combinedCompiledProjects, compiledProject] = addFields(combinedCompiledProjects,compiledProject);
+            combinedCompiledProjects = [combinedCompiledProjects, compiledProject]; %#ok<AGROW>
+        end
+    end  
+end
+save([resultsFolder,filesep,DataType,filesep,'combinedCompiledProjects.mat'], 'combinedCompiledProjects');
+
+
 
 load([resultsFolder,filesep,DataType,filesep,'combinedCompiledProjects.mat'], 'combinedCompiledProjects');
 load([resultsFolder,filesep,DataType,filesep,'dlfluobins.mat'], 'dlfluobins');
@@ -22,10 +45,15 @@ vectorDV_aligned = nan(nFrames, nBins, length(combinedCompiledProjects));
 for dlFluoBin = 1:nBins
     
     for k = 1:length(combinedCompiledProjects)
-        
+                    
         if ~isempty(combinedCompiledProjects(k).particleFrames) &&...
                 combinedCompiledProjects(k).dorsalFluoBin == dlFluoBin &&...
-                combinedCompiledProjects(k).cycle == 12
+                combinedCompiledProjects(k).cycle == 12 && ...
+                ... %some tricky logic here to make trapezoid only versions
+                ( ~onlyIncludeTrapezoids |...
+                (strcmpi(combinedCompiledProjects(k).trapezoidStatus, 'trapezoid')...
+                & onlyIncludeTrapezoids) )
+            
             
             for frame = 1:length(combinedCompiledProjects(k).binnedTime_index)
                 
@@ -69,7 +97,13 @@ averagedTimeTraces.meanVectorDV_aligned = meanVectorDV_aligned;
 averagedTimeTraces.sdVectorDV_aligned = sdVectorDV_aligned;
 averagedTimeTraces.unaveragedVectorDV_aligned = vectorDV_aligned; 
 
-save([resultsFolder,filesep,DataType,filesep,'averagedTimeTraces.mat'], 'averagedTimeTraces', '-v6');
+if onlyIncludeTrapezoids
+    saveSuffix = '_onlyTrapezoids';
+else
+    saveSuffix = '';
+end
+    
+save([resultsFolder,filesep,DataType,filesep,'averagedTimeTraces', saveSuffix, '.mat'], 'averagedTimeTraces', '-v6');
 
 figure;
 tiledlayout('flow')
@@ -82,8 +116,37 @@ for dv = 1:length(averagedTimeTraces.dlfluobins)
     
 end
 
-saveas(gcf, [resultsFolder, filesep, DataType, filesep, 'trapezoidMontage.fig']);
-saveas(gcf, [resultsFolder, filesep, DataType, filesep, 'trapezoidMontage.png']);
+saveas(gcf, [resultsFolder, filesep, DataType, filesep, 'trapezoidMontage',saveSuffix,'.fig']);
+saveas(gcf, [resultsFolder, filesep, DataType, filesep, 'trapezoidMontage',saveSuffix,'png']);
+
+
+figure;
+avCopy = averagedTimeTraces;
+avCopy.meanVectorDV(avCopy.meanVectorDV<0) = nan;
+pallette = brewermap(length(averagedTimeTraces.dlfluobins(6:12)), 'YlGn');
+colormap(pallette);
+tickLabels = {};
+n = 0;
+for dv = 6:12
+    n = n + 1;
+    plot(averagedTimeTraces.elapsedTime,...
+        avCopy.meanVectorDV(:,dv),...
+        'Color', pallette(n, :), 'LineWidth', 3);
+    hold on;
+    tickLabels = [tickLabels, num2str(averagedTimeTraces.dlfluobins(dv))];
+end
+c = colorbar('TickLabels',tickLabels);
+c.Label.String = 'Dorsal concentration (AU)';
+xlabel('Time since anaphase (min)');
+ylabel('Average spot fluorescence (AU)');
+title(DataType, 'Interpreter', 'none'); 
+
+
+
+saveas(gcf, [resultsFolder, filesep, DataType, filesep, 'trapezoidSameAxes',saveSuffix,'.fig']);
+saveas(gcf, [resultsFolder, filesep, DataType, filesep, 'trapezoidSameAxes',saveSuffix,'png']);
+
+
 
 figure;
 tiledlayout('flow')
@@ -98,8 +161,8 @@ for dv = 1:length(averagedTimeTraces.dlfluobins)
     
 end
 
-saveas(gcf, [resultsFolder, filesep, DataType, filesep, 'trapezoidAlignedMontage.fig']);
-saveas(gcf, [resultsFolder, filesep, DataType, filesep, 'trapezoidAlignedMontage.png']);
+saveas(gcf, [resultsFolder, filesep, DataType, filesep, 'trapezoidAlignedMontage',saveSuffix,'.fig']);
+saveas(gcf, [resultsFolder, filesep, DataType, filesep, 'trapezoidAlignedMontage',saveSuffix ,'.png']);
 
 
 end

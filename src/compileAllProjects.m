@@ -3,6 +3,7 @@ function dorsalResults = compileAllProjects(DataType)
 
 thisProject = LiveProject(DataType) %#ok<NOPRT>
 
+[~, resultsFolder] = getDorsalFolders;
 
 %% Validate experiments included in the analysis
 hasAllPushed = [thisProject.hasSpots, thisProject.hasParticles,...
@@ -22,9 +23,9 @@ for k = 1:length(prefixes)
     %to prevent issues with stuff in memory
     clear getMovieMat;
     clear getHisMat;
-    fit3DGaussiansToAllSpots(prefixes{k}, 1);
+%     fit3DGaussiansToAllSpots(prefixes{k}, 1);
     integrateSchnitzFluo(prefixes{k});
-   TrackmRNADynamics(prefixes{k});
+    TrackmRNADynamics(prefixes{k});
     CompileParticles(prefixes{k},  'minBinSize', 0, 'MinParticles', 0,...
         'yToManualAlignmentPrompt');
     alignCompiledParticlesByAnaphase(prefixes{k});
@@ -48,11 +49,9 @@ end
 
 [combinedCompiledProjects.dataSet] = deal(DataType);
 
-[~, resultsFolder] = getDorsalFolders;
-
 save([resultsFolder,filesep,DataType,filesep,'combinedCompiledProjects.mat'], 'combinedCompiledProjects');
 
-averagedTimeTraces = averageCombinedCompiledProjects(DataType);
+averagedTimeTraces = averageCombinedCompiledProjects(DataType, true);
 
 dorsalResults = createDorsalResults(DataType); 
 
