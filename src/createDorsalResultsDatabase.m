@@ -48,17 +48,19 @@ for i = 1:length(dataTypes)
         end
         
     end %nc loop
-    %%
-    %create a database of all traces for every experiment. 
-    load([resultsFolder,filesep,DataType,filesep,'combinedCompiledProjects.mat'], 'combinedCompiledProjects');
-    if i == 1
-        combinedCompiledProjects_allEnhancers = combinedCompiledProjects; 
-    else
-        combinedCompiledProjects_allEnhancers =...
-            [combinedCompiledProjects_allEnhancers, combinedCompiledProjects]; %#ok<AGROW>
+    try
+        %%
+        %create a database of all traces for every experiment. 
+        load([resultsFolder,filesep,dataTypes{i},filesep,'combinedCompiledProjects.mat'], 'combinedCompiledProjects');
+        if i == 1
+            combinedCompiledProjects_allEnhancers = combinedCompiledProjects; 
+        else
+            combinedCompiledProjects_allEnhancers =...
+                [combinedCompiledProjects_allEnhancers, combinedCompiledProjects]; %#ok<AGROW>
+        end
+        clear combinedCompiledProjects; %to ensure we don't accidentally add the same set twice
+        %%
     end
-    clear combinedCompiledProjects; %to ensure we don't accidentally add the same set twice
-    %%
 
 end %dataType loop
 
