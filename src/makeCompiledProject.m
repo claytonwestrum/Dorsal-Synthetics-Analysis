@@ -2,7 +2,7 @@ function compiledProject = makeCompiledProject(Prefix)
 
 [~, resultsFolder] = getDorsalFolders;
 
-liveExperiment = LiveExperiment(Prefix); 
+liveExperiment = LiveExperiment(Prefix);
 
 load([resultsFolder,filesep,Prefix,filesep,'FrameInfo.mat'], 'FrameInfo')
 load([resultsFolder,filesep,Prefix,filesep,Prefix,'_lin.mat'], 'schnitzcells')
@@ -34,69 +34,73 @@ approvedSchnitzes = find([schnitzcells.Approved]);
 n = 0;
 for s = approvedSchnitzes
     
-        n = n + 1;
-        %nuclear compilation
-        compiledProject(n).nuclearFrames = schnitzcells(s).frames;
-        compiledProject(n).cycle = schnitzcells(s).cycle;
+    n = n + 1;
+    %nuclear compilation
+    compiledProject(n).nuclearFrames = schnitzcells(s).frames;
+    compiledProject(n).cycle = schnitzcells(s).cycle;
+    if isfield(schnitzcells, 'compiledParticle')
         compiledProject(n).compiledParticle = schnitzcells(s).compiledParticle;
-        compiledProject(n).dorsalFluoBin = schnitzcells(s).dorsalFluoBin;
-        compiledProject(n).dorsalFluoFeature = schnitzcells(s).FluoFeature;
-        compiledProject(n).dorsalFluoTimeTrace= schnitzcells(s).FluoTimeTrace;
-        compiledProject(n).nuclearTimeSinceAnaphase = schnitzcells(s).timeSinceAnaphase;
-        compiledProject(n).prefix = Prefix;
-        compiledProject(n).index = n;
+    else
+        compiledProject(n).compiledParticle = [];
+        schnitzcells(s).compiledParticle = [];
+    end
+    compiledProject(n).dorsalFluoBin = schnitzcells(s).dorsalFluoBin;
+    compiledProject(n).dorsalFluoFeature = schnitzcells(s).FluoFeature;
+    compiledProject(n).dorsalFluoTimeTrace= schnitzcells(s).FluoTimeTrace;
+    compiledProject(n).nuclearTimeSinceAnaphase = schnitzcells(s).timeSinceAnaphase;
+    compiledProject(n).prefix = Prefix;
+    compiledProject(n).index = n;
+    
+    
+    %particle compilation
+    p = schnitzcells(s).compiledParticle;
+    if ~isempty(p) && CompiledParticles(p).Approved
         
         
-        %particle compilation
-        p = schnitzcells(s).compiledParticle;
-        if ~isempty(p)
-            
-            if CompiledParticles(p).Approved
-                
-                compiledProject(n).particleFrames = CompiledParticles(p).Frame;
-                compiledProject(n).particleTimeSinceAnaphase = CompiledParticles(p).timeSinceAnaphase;
-                
-                
-                
-                compiledProject(n).particleFluo= CompiledParticles(p).Fluo;
-                compiledProject(n).particleFluo3Slice = CompiledParticles(p).Fluo3;
-                compiledProject(n).particleOffset = CompiledParticles(p).Off;
-                if isfield(CompiledParticles, 'Fluo3DRaw')
-                    compiledProject(n).particleFluo3D = CompiledParticles(p).Fluo3DRaw;
-                else
-                    compiledProject(n).particleFluo3D = nan(1, length(CompiledParticles(p).Frame));
-                    warning("missing gauss 3D intensities for" + Prefix);
-                end
-                
-%                 fluo = compiledProject(n).particleFluo3D;
-                fluo = compiledProject(n).particleFluo3Slice;
-                tau = compiledProject(n).particleTimeSinceAnaphase;
-                
-                %some preliminary additional statistics about the spot
-                compiledProject(n).particleDuration = max(tau) - min(tau);
-                compiledProject(n).particleFluo95= fluo(fluo>=prctile(fluo,95));
-                compiledProject(n).particleTimeOn = min(tau);
-                
-                if length(tau) > 1
-                    compiledProject(n).particleAccumulatedFluo = trapz(tau, fluo, 2);
-                else
-                    compiledProject(n).particleAccumulatedFluo = fluo;
-                end
-                
-            else
-                
-                compiledProject(n).particleFrames = [];
-                compiledProject(n).particleFluo= [];
-                compiledProject(n).particleFluo3Slice = [];
-                compiledProject(n).particleOffset = [];
-                compiledProject(n).particleFluo3D = [];
-                compiledProject(n).particleDuration = [];
-                compiledProject(n).particleFluo95= [];
-                compiledProject(n).particleTimeOn = [];
-                compiledProject(n).particleAccumulatedFluo = [];
-                
-            end
+        compiledProject(n).particleFrames = CompiledParticles(p).Frame;
+        compiledProject(n).particleTimeSinceAnaphase = CompiledParticles(p).timeSinceAnaphase;
+        
+        
+        
+        compiledProject(n).particleFluo= CompiledParticles(p).Fluo;
+        compiledProject(n).particleFluo3Slice = CompiledParticles(p).Fluo3;
+        compiledProject(n).particleOffset = CompiledParticles(p).Off;
+        if isfield(CompiledParticles, 'Fluo3DRaw')
+            compiledProject(n).particleFluo3D = CompiledParticles(p).Fluo3DRaw;
+        else
+            compiledProject(n).particleFluo3D = nan(1, length(CompiledParticles(p).Frame));
+            warning("missing gauss 3D intensities for" + Prefix);
         end
+        
+        %                 fluo = compiledProject(n).particleFluo3D;
+        fluo = compiledProject(n).particleFluo3Slice;
+        tau = compiledProject(n).particleTimeSinceAnaphase;
+        
+        %some preliminary additional statistics about the spot
+        compiledProject(n).particleDuration = max(tau) - min(tau);
+        compiledProject(n).particleFluo95= fluo(fluo>=prctile(fluo,95));
+        compiledProject(n).particleTimeOn = min(tau);
+        
+        if length(tau) > 1
+            compiledProject(n).particleAccumulatedFluo = trapz(tau, fluo, 2);
+        else
+            compiledProject(n).particleAccumulatedFluo = fluo;
+        end
+        
+        
+    else
+        
+        compiledProject(n).particleFrames = [];
+        compiledProject(n).particleFluo= [];
+        compiledProject(n).particleFluo3Slice = [];
+        compiledProject(n).particleOffset = [];
+        compiledProject(n).particleFluo3D = [];
+        compiledProject(n).particleDuration = [];
+        compiledProject(n).particleFluo95= [];
+        compiledProject(n).particleTimeOn = [];
+        compiledProject(n).particleAccumulatedFluo = [];
+        
+    end
 end
 
 assert(~isempty(compiledProject))

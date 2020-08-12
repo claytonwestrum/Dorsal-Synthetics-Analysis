@@ -121,7 +121,8 @@ nEmbryos = {[], []};
 embryoDim = 2;
 binDim = 1;
 
-for nc = 1:2
+%nc12 is 1
+for nc = 1
     
     nSchnitzBinTotal{nc} = nansum((nschnitzFluoEmbryo{nc}), embryoDim);
     nSchnitzBinTotalWithZeros{nc} = nansum((nschnitzFluoEmbryo{nc}), embryoDim);
