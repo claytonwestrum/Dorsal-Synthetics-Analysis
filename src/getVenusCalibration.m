@@ -5,7 +5,7 @@ venus = [];
 GREGOR_TIME_POINT = 15; %min
 
 % load absolute Bcd concentration data from Gregor 2007
-bcd_abs_path = 'S:\Nick\Dropbox (Personal)\ProcessedEnrichmentData\absolute_calibration\GregorData2007\';
+bcd_abs_path = 'S:\Armando\Dropbox\DorsalSyntheticsDropbox\venus_calibration\';
 bkg_data = readtable([bcd_abs_path 'Gregor2007Black.csv']);
 bkg_data_clean.AP = bkg_data.Var1;
 bkg_data_clean.nM = bkg_data.Var2;

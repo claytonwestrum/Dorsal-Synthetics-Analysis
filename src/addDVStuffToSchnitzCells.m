@@ -54,7 +54,7 @@ for e = 1:length(allData)
         
         %not sure where the misassignment to compileparticles happens
         
-        assert(schnitzInd < length(schnitzcells));
+        assert(schnitzInd <= length(schnitzcells));
         
         schnitzcells(schnitzInd).compiledParticle = uint16(p);
         

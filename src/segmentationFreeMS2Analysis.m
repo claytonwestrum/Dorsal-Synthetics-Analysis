@@ -29,6 +29,13 @@ if isempty(ax)
     ax = axes(figure);
 end
 
+
+liveExperiment = LiveExperiment(Prefix);
+
+DogOutputFolder = [liveExperiment.procFolder, 'dogs', filesep];
+dogDir = dir([DogOutputFolder, '*_ch0','*.*']);
+haveStacks = any(cellfun(@(x) ~contains(x, '_z'), {dogDir.name}));
+
 [~,ProcPath,DropboxFolder] = readMovieDatabase(Prefix, optionalResults);
 
 if nuclearMaskFlag
@@ -40,11 +47,12 @@ load([DropboxFolder, filesep, Prefix, filesep, 'FrameInfo.mat']);
 
 nFrames = length(FrameInfo);
 nSlices = FrameInfo(1).NumberSlices;
-
-dogDirPath = [ProcPath,filesep,Prefix,'_\dogs'];
-dogDir = dir([dogDirPath, filesep,'DOG*']);
+% 
+% dogDirPath = [ProcPath,filesep,Prefix,'_\dogs'];
+% dogDir = dir([dogDirPath, filesep,'DOG*']);
 dogDir= {dogDir.name};
 numIm = length(dogDir);
+
 
 if contains(dogDir{1}, 'mat')
     saveType = 'mat';
@@ -54,33 +62,35 @@ end
 
 vals = [];
 
-% try
-%     parpool(20);
-% end
 
-for i = 1:numIm
+for f = 1:nFrames
     
-    current_frame = floor(i/nSlices)+1;
-    
-    if strcmpi(saveType, 'tif')
-        dog = imread([dogDirPath, filesep, dogDir{i}]);
-    elseif strcmpi(saveType, 'mat')
-        dog = load([dogDirPath, filesep, dogDir{i}]);
-        dog = dog.plane;
-    end
-    
+    dog = imreadStack([dogDirPath, filesep, dogDir{f}]);
+    xDim = size(dog, 1);
+    yDim = size(dog, 2);
+    zDim = size(dog, 3);
     
     if nuclearMaskFlag
-         nuclearMask = ones(size(dog, 1), size(dog, 2));
-        if current_frame <= nFrames
-            ellipsesFrame = Ellipses{current_frame};
-            nuclearMask = makeNuclearMask(ellipsesFrame, [size(dog,1), size(dog,2)], 'radScale', 1);
-        end
-    
+        
+        nuclearMask = ones(size(dog, 1), size(dog, 2));
+        ellipsesFrame = Ellipses{current_frame};
+        nuclearMask = makeNuclearMask(ellipsesFrame, [size(dog,1), size(dog,2)], 'radScale', 1);    
+        
+        %stack the nuclear mask to create cylinders out of the nuclei
+        nuclearMask = repmat(nuclearMask, [1 1 size(dog, 3)]);
+        
         dog = dog.*nuclearMask;
+        
     end
     
-    vals(i) = log10(max(dog(:))+1);
+    %filter out the z slices away from the center
+    for z = 1:size(dog, 3)
+        if z<8 || z>10 %take slices 8, 9, 10 out of 18
+            dog(:, :, z) = 0;
+        end
+    end
+   
+    vals(f) = log10(max(dog(:))+1);
     
     %imshow(dog, []);
     
