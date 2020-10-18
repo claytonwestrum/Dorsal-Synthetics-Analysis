@@ -81,7 +81,7 @@ for s = approvedSchnitzes
         compiledProject(n).particleFluo95= fluo(fluo>=prctile(fluo,95));
         compiledProject(n).particleTimeOn = min(tau);
         
-        if length(tau) > 1
+        if length(fluo) > 1
             compiledProject(n).particleAccumulatedFluo = trapz(tau, fluo, 2);
         else
             compiledProject(n).particleAccumulatedFluo = fluo;
