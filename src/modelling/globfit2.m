@@ -1,4 +1,4 @@
-function b = globfit2
+function [b, mse] = globfit2
 % Set up data so that Y is a function of T with a specific functional form,
 % but there are multiple groups and one parameter varies across groups.
 
@@ -64,8 +64,9 @@ ub = [y_max*2; Inf*ones(1, nSets)'; 8; y_max*10];
 X = [T dsid];
 
 optimoptions = optimset('TolFun',1E-6, 'MaxIter', 1E6);
-b = lsqcurvefit(@subfun_hill,p0,X,Y, lb, ub, optimoptions);
+[b, resnorm, res] = lsqcurvefit(@subfun_hill,p0,X,Y, lb, ub, optimoptions);
 
+mse = mean(res.^2);
 
 tiledlayout(1, nSets);
 dsid2 = [];

@@ -1,4 +1,4 @@
-function fitstuff_mcmc2()
+function fitstuff_mcmc2glob()
 
 close all;
 [~, resultsFolder] = getDorsalFolders;
@@ -35,7 +35,7 @@ for k = 1:nSets
     Y = [Y; ys{k}];
 end
 
-data.ydata = [xs{1}, ys{1} ];
+data.ydata = [T, Y];
 
 
 %%
@@ -45,18 +45,15 @@ model2 = dorsalFitFunction('hill');
 x = xs{1};
 y = ys{1};
 %rate, kd, hill, y offset
-y_max = nanmax(y(:));
-x_max = max(x);
+y_max = nanmax(Y(:));
+x_max = max(T);
 k00 = [y_max; x_max/2 ; 1 ; 0];
 lb = [0; 1000; 1; -y_max];
 ub = [y_max*2; Inf; 8; y_max*10];
 
+[k0, mse] = globfit2;
 
 
-[mdl,gof,~] =fit(x,y,modd,...
-    'StartPoint',k00, 'Lower',lb, 'Upper',ub);
-k0 = coeffvalues(mdl)';
-mse = (gof.rmse).^2;
 %
 params = cell(1, 3);
 for i = 1:length(k0)
