@@ -36,8 +36,9 @@ for k = 1:nSets
 end
 
 data.ydata = [T, Y];
-
-
+data.dsid = dsid;
+X = [T dsid];
+data.X = X;
 %%
 % Refine the first guess for the parameters with fminseacrh and calculate residual variance as an estimate of the model error variance.
 modd = standardizeModelForGramm(dorsalFitFunction('hill'));
@@ -47,9 +48,11 @@ y = ys{1};
 %rate, kd, hill, y offset
 y_max = nanmax(Y(:));
 x_max = max(T);
-k00 = [y_max; x_max/2 ; 1 ; 0];
-lb = [0; 1000; 1; -y_max];
-ub = [y_max*2; Inf; 8; y_max*10];
+%hill- amp kd1..kdn n offset
+p0 = [y_max;  [x_max/2;x_max;1E5*ones(1, nSets-2)'] ; 1 ; 1];
+lb = [0; 200*ones(1, nSets)';1; -y_max];
+ub = [y_max*2; Inf*ones(1, nSets)'; 8; y_max*10];
+
 
 [k0, mse] = globfit2;
 
@@ -60,14 +63,15 @@ for i = 1:length(k0)
     params{1, i} = {['k', num2str(i)],k0(i), 0};
 end
 
+params{1, 1}{4} = 1;
 %set max n of hill function to 10
-params{1, 3}{4} = 10;
+params{1, nSets+2}{4} = 10;
 
 model = struct;
 model.ssfun = @funss;
 model.sigma2 = mse;
 
-options.nsimu = 10000;
+options.nsimu = 100000;
 options.updatesigma = 1;
 [results,chain,s2chain] = mcmcrun(model,data,params,options);
 
@@ -81,14 +85,6 @@ title('error std')
 
 chainstats(chain,results)
 
-figure(2); clf
-xx = (0:1:1E4)';
-yy = model2(mean(chain), xx);
-plot(xo{1},yo{1},'s',xx,yy,'-')
-xlim([min(xx), max(xx)])
-ylim([min(yy), max(yy)]);
-legend({'obs','fit'},'Location','best')
-title('Data and fitted model')
 
 
 %ideally, these guys look like ellipses. if certain parameters give weird
@@ -96,6 +92,17 @@ title('Data and fitted model')
 %possible
 figure(3); clf
 mcmcplot(chain,[],results,'pairs', .5);
+% 
+% figure(2); clf
+% xx = (0:1:1E4)';
+% yy = model2(mean(chain), xx);
+% plot(xo{1},yo{1},'s',xx,yy,'-')
+% xlim([min(xx), max(xx)])
+% ylim([min(yy), max(yy)]);
+% legend({'obs','fit'},'Location','best')
+% title('Data and fitted model')
+
+
 
 % commented out because these graphs are inside the pairs figure
 % figure(4); clf
@@ -105,10 +112,23 @@ end
 
 function ss = funss(k, data)
 % sum-of-squares
-time = data.ydata(:,1);
 Aobs = data.ydata(:,2);
-m = dorsalFitFunction('hill');
-Amodel = m(k, time);
+
+
+x = data.X(:,1);        % unpack time from X
+dsid = data.X(:,2);     % unpack dataset id from X
+nSets = max(dsid);
+
+params = k;
+
+params = params(:)'; %need a row vec
+
+amplitude = params(1);
+KD = params(2:nSets+1)';
+n = params(nSets + 2);
+offset = params(nSets + 3);
+
+Amodel = amplitude.*(((x./KD(dsid)).^n)./(1+((x)./KD(dsid)).^n))+offset;
 
 ss = sum((Aobs-Amodel).^2);
 end
