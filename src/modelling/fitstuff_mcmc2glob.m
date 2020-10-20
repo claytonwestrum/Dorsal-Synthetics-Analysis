@@ -1,4 +1,4 @@
-function fitstuff_mcmc2glob()
+function [results,chain,s2chain]  = fitstuff_mcmc2glob()
 
 close all;
 [~, resultsFolder] = getDorsalFolders;
@@ -37,21 +37,24 @@ end
 
 data.ydata = [T, Y];
 data.dsid = dsid;
-X = [T dsid];
-data.X = X;
+data.X =  [T dsid];
+
 %%
 % Refine the first guess for the parameters with fminseacrh and calculate residual variance as an estimate of the model error variance.
-modd = standardizeModelForGramm(dorsalFitFunction('hill'));
-model2 = dorsalFitFunction('hill');
-x = xs{1};
-y = ys{1};
+
+
 %rate, kd, hill, y offset
 y_max = nanmax(Y(:));
 x_max = max(T);
 %hill- amp kd1..kdn n offset
-p0 = [y_max;  [x_max/2;x_max;1E5*ones(1, nSets-2)'] ; 1 ; 1];
-lb = [0; 200*ones(1, nSets)';1; -y_max];
-ub = [y_max*2; Inf*ones(1, nSets)'; 8; y_max*10];
+% p0 = [y_max;  [x_max/2;x_max;1E4*ones(1, nSets-2)'] ; 1 ; 1];
+% lb = [0; 200*ones(1, nSets)';1; -y_max];
+% ub = [y_max*2; Inf*ones(1, nSets)'; 8; y_max*10];
+
+%simplebindingweak_fraction- omegaDP kd1..kdn
+% p0 = [.02; [x_max/2;x_max;1E4*ones(1, nSets-2)']];
+% lb = [0; 200*ones(1, nSets)'];
+% ub = [Inf; Inf*ones(1, nSets)'];
 
 
 [k0, mse] = globfit2;
@@ -63,23 +66,28 @@ for i = 1:length(k0)
     params{1, i} = {['k', num2str(i)],k0(i), 0};
 end
 
-params{1, 1}{4} = 1;
+% params{1, 1}{4} = 1;
 %set max n of hill function to 10
-params{1, nSets+2}{4} = 10;
+% params{1, nSets+2}{4} = 10;
+for i = 2:nSets+1
+    params{1, i}{4} = 1E4;
+end
 
 model = struct;
-model.ssfun = @funss;
+model.ssfun = @funss_simpleweakfraction;
 model.sigma2 = mse;
 
-options.nsimu = 100000;
+options.nsimu = 10000;
 options.updatesigma = 1;
 [results,chain,s2chain] = mcmcrun(model,data,params,options);
 
-figure(1); clf
+chainfig = figure(); clf
 mcmcplot(chain,[],results,'chainpanel')
-subplot(2,2,4)
-mcmcplot(sqrt(s2chain),[],[],'dens',2)
-title('error std')
+% subplot(2,2,4)
+% mcmcplot(sqrt(s2chain),[],[],'dens',2)
+% title('error std')
+% ylabel('pdf')
+% xlabel('RMSE')
 
 % Function chainstats lists some statistics, including the estimated Monte Carlo error of the estimates.
 
@@ -93,20 +101,46 @@ chainstats(chain,results)
 figure(3); clf
 mcmcplot(chain,[],results,'pairs', .5);
 % 
-% figure(2); clf
-% xx = (0:1:1E4)';
-% yy = model2(mean(chain), xx);
-% plot(xo{1},yo{1},'s',xx,yy,'-')
-% xlim([min(xx), max(xx)])
-% ylim([min(yy), max(yy)]);
-% legend({'obs','fit'},'Location','best')
-% title('Data and fitted model')
 
+figure(4); clf
+til = tiledlayout(1, nSets);
+dsid2 = [];
 
+xx = (0:10:max(data.X(:,1)))';
+for k = 1:nSets
+    dsid2 = [dsid2; k*ones(length(xx), 1)];
+end
 
-% commented out because these graphs are inside the pairs figure
-% figure(4); clf
-% mcmcplot(chain,[],results,'denspanel',2);
+out = mcmcpred(results,chain,[],repmat(xx, nSets, 1), @(x, p)subfun_simplebinding_weak_fraction_std2(x, p));
+nn = (size(out.predlims{1}{1},1) + 1) / 2;
+plimi = out.predlims{1};
+yl = plimi{1}(1,:);
+yu = plimi{1}(2*nn-1,:);
+  
+km = mean(chain);
+ks = std(chain);
+X2 = [repmat(xx, nSets, 1), dsid2];
+yfit2 = subfun_simplebinding_weak_fraction(km, X2);
+
+for i = 1:nSets
+
+    yy = yfit2(X2(:, 2)==i);
+    yyl = yl(X2(:, 2)==i);
+    yyu = yu(X2(:, 2)==i);
+    nexttile;
+    fillyy(xx,yyl,yyu,[0.9 0.9 0.9]);
+    hold on
+    plot(xo{i},yo{i},'o-',xx,yy,'-')
+
+%     xlim([min(xx), max(xx)*1.2])
+%     ylim([min(yy), max(yy)*1.2]);
+    xlim([0,3500])
+    ylim([0, 1])
+    title({enhancers{i}, ['KD = ' num2str(round2(km(i+1))), ' \pm ', num2str(round2(ks(i+1)))],...
+        [' \omega'' = ', num2str(round2(km(1))), ' \pm ', num2str(round2(ks(1)))]})
+end
+title(til, 'global fit with mcmc')
+
 
 end
 
@@ -131,4 +165,99 @@ offset = params(nSets + 3);
 Amodel = amplitude.*(((x./KD(dsid)).^n)./(1+((x)./KD(dsid)).^n))+offset;
 
 ss = sum((Aobs-Amodel).^2);
+end
+
+
+function ss = funss_simpleweak(k, data)
+% sum-of-squares
+Aobs = data.ydata(:,2);
+
+
+x = data.X(:,1);        % unpack time from X
+dsid = data.X(:,2);     % unpack dataset id from X
+nSets = max(dsid);
+
+params = k;
+
+params = params(:)'; %need a row vec
+
+amplitude = params(1);
+KD = params(2:nSets+1)';
+omegaDP = params(nSets + 2);
+offset = params(nSets + 3);
+
+Amodel = amplitude.*(((x./KD(dsid)).*omegaDP)./(1+x./KD(dsid)+(x./KD(dsid)).*omegaDP))+offset;
+
+ss = sum((Aobs-Amodel).^2);
+end
+
+function yfit = subfun_simplebinding_weak(params,X)
+
+%simplebinding in the weak promoter limit.
+
+x = X(:,1);        % unpack time from X
+dsid = X(:,2);     % unpack dataset id from X
+nSets = max(dsid);
+
+params = params(:)'; %need a row vec
+
+amplitude = params(1);
+KD = params(2:nSets+1)';
+omegaDP = params(nSets + 2);
+offset = params(nSets + 3);
+
+yfit = amplitude.*(((x./KD(dsid)).*omegaDP)./(1+x./KD(dsid)+(x./KD(dsid)).*omegaDP))+offset;
+
+end
+
+
+function ss = funss_simpleweakfraction(k, data)
+% sum-of-squares
+Aobs = data.ydata(:,2);
+x = data.X(:,1);        % unpack time from X
+dsid = data.X(:,2);     % unpack dataset id from X
+nSets = max(dsid);
+params = k;
+params = params(:)'; %need a row vec
+omegaDP = params(1);
+KD = params(2:nSets+1)';
+Amodel = (((x./KD(dsid)).*omegaDP)./(1+x./KD(dsid)+(x./KD(dsid)).*omegaDP));
+ss = sum((Aobs-Amodel).^2);
+end
+
+function yfit = subfun_simplebinding_weak_fraction(params,X)
+%simplebinding in the weak promoter limit.
+x = X(:,1);        % unpack time from X
+dsid = X(:,2);     % unpack dataset id from X
+nSets = max(dsid);
+params = params(:)'; %need a row vec
+omegaDP = params(1);
+KD = params(2:nSets+1)';
+yfit = (((x./KD(dsid)).*omegaDP)./(1+x./KD(dsid)+(x./KD(dsid)).*omegaDP));
+end
+
+
+function yfit = subfun_simplebinding_weak_fraction_std2(x, params)
+%simplebinding in the weak promoter limit.
+
+X = [];
+n = 1;
+X(1, :) = [x(1), 1];
+for k = 2:length(x)
+    if x(k) < x(k-1)
+        n = n + 1;
+    end
+    X(k, 1) = x(k);
+    X(k, 2) = n;
+end
+
+dsid = X(:,2);     % unpack dataset id from X
+nSets = max(dsid);
+
+nSets = max(dsid);
+params = params(:)'; %need a row vec
+omegaDP = params(1);
+KD = params(2:nSets+1)';
+yfit = (((x./KD(dsid)).*omegaDP)./(1+x./KD(dsid)+(x./KD(dsid)).*omegaDP));
+
 end

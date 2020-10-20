@@ -1,6 +1,9 @@
 %% Fraction active
 close all;
 
+[~, resultsFolder] = getDorsalFolders;
+load([resultsFolder, filesep, 'dorsalResultsDatabase.mat'], 'dorsalResultsDatabase')
+
 enhancers =   {'1Dg-8D', '1Dg-5','1Dg11'};
 
 scores = [-8, -5, 0]';

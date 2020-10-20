@@ -8,8 +8,6 @@ load([resultsFolder, filesep, 'dorsalResultsDatabase.mat'], 'dorsalResultsDataba
 % enhancers =  {'1Dg11', '1DgS2', '1DgW', '1DgAW3', '1DgSVW2', '1DgVVW3', '1DgVW'};
 enhancers =  {'1Dg11', '1DgS2', '1DgW', '1DgAW3', '1DgSVW2', '1DgVVW3', '1DgVW'};
 
-
-
 %we're going to restrict the range of the fits specifically for each
 %enhancer. nan values means no restriction
 xrange = nan(length(enhancers), 2);
@@ -49,9 +47,14 @@ x_max = max(T);
 % ub = [min(1, y_max*2); Inf*ones(1, nSets)'; Inf; y_max*10; Inf];
 
 %hill- amp kd1..kdn n offset
-p0 = [y_max;  [x_max/2;x_max;1E5*ones(1, nSets-2)'] ; 1 ; 1];
-lb = [0; 200*ones(1, nSets)';1; -y_max];
-ub = [y_max*2; Inf*ones(1, nSets)'; 8; y_max*10];
+% p0 = [y_max;  [x_max/2;x_max;1E4*ones(1, nSets-2)'] ; 1 ; 1];
+% lb = [0; 200*ones(1, nSets)';1; -y_max];
+% ub = [y_max*2; 1E4*ones(1, nSets)'; 8; y_max*10];
+
+%simplebindingweak_fraction- omegaDP kd1..kdn
+p0 = [.02; [x_max/2;x_max;1E4*ones(1, nSets-2)']];
+lb = [0; 200*ones(1, nSets)'];
+ub = [Inf; 1E4*ones(1, nSets)'];
 
 %simple binding weak- amp kd1 kd2 kd3 offset omegadp
 % p0 = [y_max; [x_max/2;x_max;1E4*ones(1, nSets-2)']; 0; .5];
@@ -64,33 +67,44 @@ ub = [y_max*2; Inf*ones(1, nSets)'; 8; y_max*10];
 X = [T dsid];
 
 optimoptions = optimset('TolFun',1E-6, 'MaxIter', 1E6);
-[b, resnorm, res] = lsqcurvefit(@subfun_hill,p0,X,Y, lb, ub, optimoptions);
+[b,~,res,~,~,~, Jacobian] = lsqcurvefit(@subfun_simplebinding_weak_fraction,p0,X,Y, lb, ub, optimoptions);
+CI = nlparci(b,res,'jacobian',Jacobian);
+mdl = @(p, x) subfun_simplebinding_weak_fraction_std(p, x);
+xx = (0:1:max(X(:,1)))';
+xxx = repmat(xx, nSets, 1);
+[Ypred,delta] = nlpredci(mdl,xxx,b,res,'Jacobian',Jacobian);
+yl = Ypred - delta;
+yu = Ypred + delta;
 
 mse = mean(res.^2);
 
-tiledlayout(1, nSets);
-dsid2 = [];
+figure(1);
+til = tiledlayout(1, nSets);
 
-xx = (0:1:max(X(:,1)))';
+dsid2 = [];
 for k = 1:nSets
     dsid2 = [dsid2; k*ones(length(xx), 1)];
 end
 
 X2 = [repmat(xx, nSets, 1), dsid2];
-yfit2 = subfun_hill(b, X2);
+yfit2 = subfun_simplebinding_weak_fraction(b, X2);
 
 for k = 1:nSets
     
-    y = yfit2(X2(:, 2)==k);
-    
+    yy = yfit2(X2(:, 2)==k);
+    yyl = yl(X2(:, 2)==k);
+    yyu = yu(X2(:, 2)==k);
     nexttile;
-    plot(xo{k}, yo{k}, xx, y);
-    ylim([0, max(yfit2)*1.1]);
-    xlim([0, max(xx)]);
-    title(enhancers{k});
-    
+    plot(xo{k}, yo{k}, 'o-', xx, yy, '-', xx,yyl, '--r', xx, yyu, '--r');
+%     ylim([0, max(yfit2)*1.1]);
+%     xlim([0, max(xx)]);
+    ylim([0, 1]);
+    xlim([0, 3500]);
+    title({enhancers{k}, num2str(b(k+1))})
+    title({enhancers{k}, ['KD = ' num2str(round2(b(k+1))), ' (', num2str(round2(CI(k+1, 1))), ' ', num2str(round2(CI(k+1, 2))) ' )'],...
+        [' \omega'' = ', num2str(round2(b(1))), ' (', num2str(round2(CI(1, 1))), ' ', num2str(round2(CI(1, 2))), ' )']})
 end
-
+title(til, 'global fit, gradient')
 end
 
 
@@ -150,6 +164,88 @@ offset = params(nSets + 3);
 yfit = amplitude.*(((x./KD(dsid)).*omegaDP)./(1+x./KD(dsid)+(x./KD(dsid)).*omegaDP))+offset;
 
 end
+
+
+function yfit = subfun_simplebinding_weak_fraction(params,X)
+%simplebinding in the weak promoter limit.
+x = X(:,1);        % unpack time from X
+
+X3 = [];
+n = 1;
+X3(1, :) = [x(1), 1];
+for k = 2:length(x)
+    if x(k) < x(k-1)
+        n = n + 1;
+    end
+    X3(k, 1) = x(k);
+    X3(k, 2) = n;
+end
+dsid3 = X3(:, 2);
+dsid = X(:,2);     % unpack dataset id from X
+nSets = max(dsid);
+
+params = params(:)'; %need a row vec
+
+omegaDP = params(1);
+KD = params(2:nSets+1)';
+
+yfit = (((x./KD(dsid)).*omegaDP)./(1+x./KD(dsid)+(x./KD(dsid)).*omegaDP));
+
+end
+
+
+function yfit = subfun_simplebinding_weak_fraction_std(params, x)
+%simplebinding in the weak promoter limit.
+
+X = [];
+n = 1;
+X(1, :) = [x(1), 1];
+for k = 2:length(x)
+    if x(k) < x(k-1)
+        n = n + 1;
+    end
+    X(k, 1) = x(k);
+    X(k, 2) = n;
+end
+
+dsid = X(:,2);     % unpack dataset id from X
+nSets = max(dsid);
+
+params = params(:)'; %need a row vec
+
+omegaDP = params(1);
+KD = params(2:nSets+1)';
+
+yfit = (((x./KD(dsid)).*omegaDP)./(1+x./KD(dsid)+(x./KD(dsid)).*omegaDP));
+
+end
+
+function yfit = subfun_simplebinding_weak_fraction_std2(params, x)
+%simplebinding in the weak promoter limit.
+
+X = [];
+n = 1;
+X(1, :) = [x(1), 1];
+for k = 2:length(x)
+    if x(k) < x(k-1)
+        n = n + 1;
+    end
+    X(k, 1) = x(k);
+    X(k, 2) = n;
+end
+
+dsid = X(:,2);     % unpack dataset id from X
+nSets = max(dsid);
+
+params = params(:)'; %need a row vec
+
+omegaDP = params(1);
+KD = params(2:nSets+1)';
+
+yfit = (((x./KD(dsid)).*omegaDP)./(1+x./KD(dsid)+(x./KD(dsid)).*omegaDP));
+
+end
+
 
 % %% example function if i want to use different functional forms for
 % different datasets
