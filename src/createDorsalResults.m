@@ -14,7 +14,8 @@ for i = 1:length(varargin)
     end
 end
 
-[~, resultsFolder, prefixes] = getDorsalPrefixes(DataType);
+[~, resultsFolder] = getDorsalFolders;
+prefixes = getProjectPrefixes(DataType, 'onlyApproved');
 
 load([resultsFolder,filesep,DataType,filesep,'dlfluobins.mat'], 'dlfluobins');
 

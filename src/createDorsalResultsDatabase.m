@@ -14,7 +14,9 @@ for i = 1:length(dataTypes)
     dorsalResultsClean = addKeysToDorsalResults(dorsalResults);
     
     %skipping nc14
-    dorsalResultsClean = dorsalResultsClean(1:2);
+%     dorsalResultsClean = dorsalResultsClean(1:2);
+%and 13 now
+    dorsalResultsClean = dorsalResultsClean(1);
     
     for ncIndex = 1:length(dorsalResultsClean)
         
@@ -63,5 +65,22 @@ for i = 1:length(dataTypes)
     end
 
 end %dataType loop
+
+
+%%
+%now let's add affinity information
+names = {'1Dg11', '1DgS2', '1DgAW3', '1DgW', '1DgSVW2', '1DgVW', '1DgVVW3'}';
+flyregScores = [6.23, 5.81, 5.13, 5.39, 4.80, 4.29, 4.73]';
+
+dorsalResultsDatabase.patserScore = nan(length(dorsalResultsDatabase.enhancer), 1);
+for k = 1:length(names)
+    for j = 1:length(dorsalResultsDatabase.enhancer)
+        if strcmpi(dorsalResultsDatabase.enhancer{j}, names{k})
+            dorsalResultsDatabase.patserScore(j) = flyregScores(k);
+        end
+    end
+end
+%%
+
 
 save([resultsFolder, filesep, 'dorsalResultsDatabase.mat'], '-v6');
