@@ -1,21 +1,40 @@
-function [b, mse] = globfit2
+function [b, mse] = globfit2(varargin)
 % Set up data so that Y is a function of T with a specific functional form,
 % but there are multiple groups and one parameter varies across groups.
 
 close all;
 [~, resultsFolder] = getDorsalFolders;
 load([resultsFolder, filesep, 'dorsalResultsDatabase.mat'], 'dorsalResultsDatabase')
-% enhancers =  {'1Dg11', '1DgS2', '1DgW', '1DgAW3', '1DgSVW2', '1DgVVW3', '1DgVW'};
-enhancers =  {'1Dg11', '1DgS2', '1DgW', '1DgAW3', '1DgSVW2', '1DgVVW3', '1DgVW'};
+
+expmnt = 'affinities';
+md = 'simpleweak';
+metric = "fraction";
+maxKD = 2E4;
+%options must be specified as name, value pairs. unpredictable errors will
+%occur, otherwise.
+for i = 1:2:(numel(varargin)-1)
+    if i ~= numel(varargin)
+        eval([varargin{i} '=varargin{i+1};']);
+    end
+end
+
+if strcmpi(expmnt, 'affinities')
+    enhancers =  {'1Dg11', '1DgS2', '1DgW', '1DgAW3', '1DgSVW2', '1DgVVW3', '1DgVW'};
+elseif strcmpi(expmnt, 'phases')
+    enhancers = {'1Dg-8D', '1Dg-5','1Dg11'};
+end
+
+
 
 %we're going to restrict the range of the fits specifically for each
 %enhancer. nan values means no restriction
 xrange = nan(length(enhancers), 2);
 xrange(1,:)  = [1000, 2250];  %1Dg
-xrange(2, :) = [500, 1750]; %upper limit for %1DgS
-xrange(3, 1) = 500; %lower limit for 1DgW
-xrange(4, 2) = 1500; %upper limit for %1DgAW
-
+if strcmpi(expmnt, 'affinities')
+    xrange(2, :) = [500, 1750]; %upper limit for %1DgS
+    xrange(3, 1) = 500; %lower limit for 1DgW
+    xrange(4, 2) = 1500; %upper limit for %1DgAW
+end
 
 nSets = length(enhancers);
 xo = {};
@@ -26,10 +45,14 @@ dsid = [];
 T = [];
 Y = [];
 for k = 1:nSets
-    xo{k} = dorsalResultsDatabase.dorsalFluoBins( ...
-        strcmpi(dorsalResultsDatabase.mother,'2x') & strcmpi(dorsalResultsDatabase.enhancer, enhancers{k}) );
-    yo{k} = dorsalResultsDatabase.meanFracFluoEmbryo( ...
-        strcmpi(dorsalResultsDatabase.mother,'2x') & strcmpi(dorsalResultsDatabase.enhancer, enhancers{k} ) );
+    cond = strcmpi(dorsalResultsDatabase.mother,'2x') & strcmpi(dorsalResultsDatabase.enhancer, enhancers{k});
+    xo{k} = dorsalResultsDatabase.dorsalFluoBins(cond);
+    if metric == "fraction"
+        yo{k} = dorsalResultsDatabase.meanFracFluoEmbryo(cond);
+    elseif metric == "fluo"
+%         yo{k} = dorsalResultsDatabase.meanAllMaxFluoEmbryo(cond);
+        yo{k} = dorsalResultsDatabase.meanallmrnasEmbryo(cond);
+    end
     [xs{k}, ys{k}]= processVecs(xo{k}, yo{k}, xrange(k, :));
     dsid = [dsid; k*ones(size(xs{k}))];
     T = [T; xs{k}];
@@ -51,10 +74,19 @@ x_max = max(T);
 % lb = [0; 200*ones(1, nSets)';1; -y_max];
 % ub = [y_max*2; 1E4*ones(1, nSets)'; 8; y_max*10];
 
-%simplebindingweak_fraction- omegaDP kd1..kdn
-p0 = [.02; [x_max/2;x_max;1E4*ones(1, nSets-2)']];
-lb = [0; 200*ones(1, nSets)'];
-ub = [Inf; 1E4*ones(1, nSets)'];
+if md=="simpleweak" && metric=="fraction"
+    %simplebindingweak_fraction- omegaDP kd1..kdn
+    p0 = [.02; [x_max/2;x_max;1E4*ones(1, nSets-2)']];
+    lb = [1E-2; 200*ones(1, nSets)'];
+    ub = [1E2; maxKD*ones(1, nSets)'];
+elseif md=="simpleweak" && metric=="fluo"
+    %simplebindingweak_fluo- omegaDP kd1..kdn amp off
+    p0 = [1; [x_max/2;x_max;1E4*ones(1, nSets-2)']; 500; 0];
+    lb = [1E-3; 200*ones(1, nSets)'; 0; 10];
+    ub = [Inf; maxKD*ones(1, nSets)'; 1E3; 1E3];
+end
+
+
 
 %simple binding weak- amp kd1 kd2 kd3 offset omegadp
 % p0 = [y_max; [x_max/2;x_max;1E4*ones(1, nSets-2)']; 0; .5];
@@ -66,13 +98,23 @@ ub = [Inf; 1E4*ones(1, nSets)'];
 % Pack up the time and dataset id variables into X for later unpacking
 X = [T dsid];
 
-optimoptions = optimset('TolFun',1E-6, 'MaxIter', 1E6);
-[b,~,res,~,~,~, Jacobian] = lsqcurvefit(@subfun_simplebinding_weak_fraction,p0,X,Y, lb, ub, optimoptions);
+optimoptions = optimset('TolFun',1E-6, 'MaxIter', 1E6, 'MaxFunEvals', 1E5);
+
+if md=="simpleweak" && metric=="fraction"
+    mdlo = @subfun_simplebinding_weak_fraction;
+    mdl = @(p, x) subfun_simplebinding_weak_fraction_std(p, x);
+elseif md=="simpleweak" && metric=="fluo"
+    mdlo = @subfun_simplebinding_weak_fluo;
+    mdl = @(p, x) subfun_simplebinding_weak_fluo_std(p, x);
+end
+
+[b,~,res,~,~,~, Jacobian] = lsqcurvefit(mdlo,p0,X,Y, lb, ub, optimoptions);
+
+
 CI = nlparci(b,res,'jacobian',Jacobian);
-mdl = @(p, x) subfun_simplebinding_weak_fraction_std(p, x);
 xx = (0:1:max(X(:,1)))';
 xxx = repmat(xx, nSets, 1);
-[Ypred,delta] = nlpredci(mdl,xxx,b,res,'Jacobian',Jacobian);
+[Ypred,delta] = nlpredci(mdl,xxx,b,res,'Jacobian',full(Jacobian));
 yl = Ypred - delta;
 yu = Ypred + delta;
 
@@ -87,7 +129,13 @@ for k = 1:nSets
 end
 
 X2 = [repmat(xx, nSets, 1), dsid2];
-yfit2 = subfun_simplebinding_weak_fraction(b, X2);
+
+if md=="simpleweak" && metric=="fraction"
+    yfit2 = subfun_simplebinding_weak_fraction(b, X2);
+elseif md=="simpleweak" && metric=="fluo"
+    yfit2 = subfun_simplebinding_weak_fluo(b, X2);
+end
+
 
 for k = 1:nSets
     
@@ -98,11 +146,20 @@ for k = 1:nSets
     plot(xo{k}, yo{k}, 'o-', xx, yy, '-', xx,yyl, '--r', xx, yyu, '--r');
 %     ylim([0, max(yfit2)*1.1]);
 %     xlim([0, max(xx)]);
-    ylim([0, 1]);
     xlim([0, 3500]);
-    title({enhancers{k}, num2str(b(k+1))})
-    title({enhancers{k}, ['KD = ' num2str(round2(b(k+1))), ' (', num2str(round2(CI(k+1, 1))), ' ', num2str(round2(CI(k+1, 2))) ' )'],...
+     if metric=="fraction"
+        title({enhancers{k}, ['KD = ' num2str(round2(b(k+1))), ' (', num2str(round2(CI(k+1, 1))), ' ', num2str(round2(CI(k+1, 2))) ' )'],...
         [' \omega'' = ', num2str(round2(b(1))), ' (', num2str(round2(CI(1, 1))), ' ', num2str(round2(CI(1, 2))), ' )']})
+        ylim([0, 1]);
+    elseif metric=="fluo"
+        title({enhancers{k}, ['KD = ' num2str(round2(b(k+1))), ' (', num2str(round2(CI(k+1, 1))), ' ', num2str(round2(CI(k+1, 2))) ' )'],...
+        [' \omega'' = ', num2str(round2(b(1))), ' (', num2str(round2(CI(1, 1))), ' ', num2str(round2(CI(1, 2))), ' )'],...
+        [' amp = ', num2str(round2(b(end-1))), ' (', num2str(round2(CI(end-1, 1))), ' ', num2str(round2(CI(end-1, 2))), ' )'],...
+        [' off = ', num2str(round2(b(end))), ' (', num2str(round2(CI(end, 1))), ' ', num2str(round2(CI(end, 2))), ' )'],...
+        })
+        ylim([0, y_max]);
+    end
+    
 end
 title(til, 'global fit, gradient')
 end
@@ -165,6 +222,7 @@ yfit = amplitude.*(((x./KD(dsid)).*omegaDP)./(1+x./KD(dsid)+(x./KD(dsid)).*omega
 
 end
 
+%% simple weak fraction
 
 function yfit = subfun_simplebinding_weak_fraction(params,X)
 %simplebinding in the weak promoter limit.
@@ -220,7 +278,38 @@ yfit = (((x./KD(dsid)).*omegaDP)./(1+x./KD(dsid)+(x./KD(dsid)).*omegaDP));
 
 end
 
-function yfit = subfun_simplebinding_weak_fraction_std2(params, x)
+%% simple weak fluo
+
+function yfit = subfun_simplebinding_weak_fluo(params,X)
+%simplebinding in the weak promoter limit.
+x = X(:,1);        % unpack time from X
+
+X3 = [];
+n = 1;
+X3(1, :) = [x(1), 1];
+for k = 2:length(x)
+    if x(k) < x(k-1)
+        n = n + 1;
+    end
+    X3(k, 1) = x(k);
+    X3(k, 2) = n;
+end
+dsid3 = X3(:, 2);
+dsid = X(:,2);     % unpack dataset id from X
+nSets = max(dsid);
+
+params = params(:)'; %need a row vec
+
+omegaDP = params(1);
+KD = params(2:nSets+1)';
+amp = params(max(dsid)+2);
+offset = params(max(dsid)+3);
+yfit = amp.*(((x./KD(dsid)).*omegaDP)./(1+x./KD(dsid)+(x./KD(dsid)).*omegaDP)) + offset;
+
+end
+
+
+function yfit = subfun_simplebinding_weak_fluo_std(params, x)
 %simplebinding in the weak promoter limit.
 
 X = [];
@@ -241,10 +330,18 @@ params = params(:)'; %need a row vec
 
 omegaDP = params(1);
 KD = params(2:nSets+1)';
-
-yfit = (((x./KD(dsid)).*omegaDP)./(1+x./KD(dsid)+(x./KD(dsid)).*omegaDP));
+amp = params(max(dsid)+2);
+offset = params(max(dsid)+3);
+yfit = amp.*(((x./KD(dsid)).*omegaDP)./(1+x./KD(dsid)+(x./KD(dsid)).*omegaDP)) + offset;
 
 end
+
+
+
+
+
+
+
 
 
 % %% example function if i want to use different functional forms for
