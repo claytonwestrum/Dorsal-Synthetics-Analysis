@@ -10,10 +10,10 @@
 NotebookFileLineBreakTest
 NotebookFileLineBreakTest
 NotebookDataPosition[       158,          7]
-NotebookDataLength[      9651,        242]
-NotebookOptionsPosition[      8380,        212]
-NotebookOutlinePosition[      8724,        227]
-CellTagsIndexPosition[      8681,        224]
+NotebookDataLength[     12146,        309]
+NotebookOptionsPosition[     10468,        273]
+NotebookOutlinePosition[     10811,        288]
+CellTagsIndexPosition[     10768,        285]
 WindowFrame->Normal*)
 
 (* Beginning of Notebook Content *)
@@ -156,6 +156,20 @@ $CellContext`kd$$, $CellContext`\[Omega]$$, $CellContext`off$$], \
  CellLabel->"Out[20]=",ExpressionUUID->"daa2a510-492d-4271-8728-95c7816a7d4c"]
 }, Open  ]],
 
+Cell[BoxData[""], "Input",
+ CellChangeTimes->{{3.8122174027814693`*^9, 
+  3.812217404572609*^9}},ExpressionUUID->"86673eb2-b948-4199-a6c7-\
+adbb01a7a719"],
+
+Cell["\<\
+These calculations below show that \[Omega] and KD affect the magnitude of \
+the output in pretty much the same way. This is probably bad from a fitting \
+perspective.  \
+\>", "Text",
+ CellChangeTimes->{{3.812217415435734*^9, 
+  3.812217479009966*^9}},ExpressionUUID->"0feff05b-7999-484c-8906-\
+4b12da8ea7c5"],
+
 Cell[CellGroupData[{
 
 Cell[BoxData[
@@ -208,10 +222,57 @@ Cell[BoxData[
      RowBox[{"d", " ", "\[Omega]"}]}], ")"}], "2"]]], "Output",
  CellChangeTimes->{{3.8122170156570435`*^9, 3.812217039291685*^9}},
  CellLabel->"Out[28]=",ExpressionUUID->"01b79ea2-0332-4631-87ae-fb904b83765b"]
+}, Open  ]],
+
+Cell[CellGroupData[{
+
+Cell[BoxData[
+ RowBox[{"Series", "[", 
+  RowBox[{
+   RowBox[{"dmrnadt", "[", 
+    RowBox[{
+    "d", ",", " ", "R", ",", " ", "kd", ",", " ", "\[Omega]", ",", " ", 
+     "off"}], "]"}], ",", 
+   RowBox[{"{", 
+    RowBox[{"d", ",", "kd", ",", "1"}], "}"}]}], "]"}]], "Input",
+ CellChangeTimes->{{3.8122193033167*^9, 3.812219330756854*^9}, {
+   3.8122193658834352`*^9, 3.81221936847824*^9}, 3.812219424144384*^9},
+ CellLabel->"In[31]:=",ExpressionUUID->"bd75e998-1a4a-4fc8-a5c9-213eb8b23eb9"],
+
+Cell[BoxData[
+ InterpretationBox[
+  RowBox[{
+   RowBox[{"(", 
+    RowBox[{"off", "+", 
+     FractionBox[
+      RowBox[{"R", " ", "\[Omega]"}], 
+      RowBox[{"1", "+", "\[Omega]"}]]}], ")"}], "+", 
+   FractionBox[
+    RowBox[{"R", " ", "\[Omega]", " ", 
+     RowBox[{"(", 
+      RowBox[{"d", "-", "kd"}], ")"}]}], 
+    RowBox[{"kd", " ", 
+     SuperscriptBox[
+      RowBox[{"(", 
+       RowBox[{"1", "+", "\[Omega]"}], ")"}], "2"]}]], "+", 
+   InterpretationBox[
+    SuperscriptBox[
+     RowBox[{"O", "[", 
+      RowBox[{"d", "-", "kd"}], "]"}], "2"],
+    SeriesData[$CellContext`d, $CellContext`kd, {}, 0, 2, 1],
+    Editable->False]}],
+  SeriesData[$CellContext`d, $CellContext`kd, {$CellContext`off + \
+$CellContext`R $CellContext`\[Omega]/(
+     1 + $CellContext`\[Omega]), $CellContext`kd^(-1) $CellContext`R \
+$CellContext`\[Omega] (1 + $CellContext`\[Omega])^(-2)}, 0, 2, 1],
+  Editable->False]], "Output",
+ CellChangeTimes->{3.81221933611718*^9, 3.812219368941124*^9, 
+  3.812219425969821*^9},
+ CellLabel->"Out[31]=",ExpressionUUID->"3cc1b619-7d0f-4716-9e77-4b5936d79dbd"]
 }, Open  ]]
 },
-WindowSize->{966, 612},
-WindowMargins->{{Automatic, -29}, {-30, Automatic}},
+WindowSize->{1280, 637},
+WindowMargins->{{-8, Automatic}, {Automatic, -8}},
 FrontEndVersion->"11.3 for Microsoft Windows (64-bit) (March 6, 2018)",
 StyleDefinitions->"Default.nb"
 ]
@@ -235,18 +296,22 @@ Cell[CellGroupData[{
 Cell[2566, 73, 1383, 31, 48, "Input",ExpressionUUID->"d816a8bf-1917-4ac9-b7ab-94812affedc9"],
 Cell[3952, 106, 2654, 49, 501, "Output",ExpressionUUID->"daa2a510-492d-4271-8728-95c7816a7d4c"]
 }, Open  ]],
+Cell[6621, 158, 154, 3, 28, "Input",ExpressionUUID->"86673eb2-b948-4199-a6c7-adbb01a7a719"],
+Cell[6778, 163, 319, 7, 34, "Text",ExpressionUUID->"0feff05b-7999-484c-8906-4b12da8ea7c5"],
 Cell[CellGroupData[{
-Cell[6643, 160, 405, 9, 28, "Input",ExpressionUUID->"40880910-4d99-4c4c-a676-d8d37e9c431e"],
-Cell[7051, 171, 365, 9, 61, "Output",ExpressionUUID->"34e1ecb1-7458-44c5-a09f-62910777c531"]
+Cell[7122, 174, 405, 9, 28, "Input",ExpressionUUID->"40880910-4d99-4c4c-a676-d8d37e9c431e"],
+Cell[7530, 185, 365, 9, 61, "Output",ExpressionUUID->"34e1ecb1-7458-44c5-a09f-62910777c531"]
 }, Open  ]],
-Cell[7431, 183, 156, 3, 28, "Input",ExpressionUUID->"f128dafc-c2c7-471e-95ca-7af5479a2721"],
+Cell[7910, 197, 156, 3, 28, "Input",ExpressionUUID->"f128dafc-c2c7-471e-95ca-7af5479a2721"],
 Cell[CellGroupData[{
-Cell[7612, 190, 413, 9, 28, "Input",ExpressionUUID->"659505c6-b1ea-4be7-9462-88668a2c7ba5"],
-Cell[8028, 201, 336, 8, 61, "Output",ExpressionUUID->"01b79ea2-0332-4631-87ae-fb904b83765b"]
+Cell[8091, 204, 413, 9, 28, "Input",ExpressionUUID->"659505c6-b1ea-4be7-9462-88668a2c7ba5"],
+Cell[8507, 215, 336, 8, 61, "Output",ExpressionUUID->"01b79ea2-0332-4631-87ae-fb904b83765b"]
+}, Open  ]],
+Cell[CellGroupData[{
+Cell[8880, 228, 489, 11, 28, "Input",ExpressionUUID->"bd75e998-1a4a-4fc8-a5c9-213eb8b23eb9"],
+Cell[9372, 241, 1080, 29, 61, "Output",ExpressionUUID->"3cc1b619-7d0f-4716-9e77-4b5936d79dbd"]
 }, Open  ]]
 }
 ]
 *)
-
-(* End of internal cache information *)
 

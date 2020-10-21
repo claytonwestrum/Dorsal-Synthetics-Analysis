@@ -76,17 +76,7 @@ data.X =  [T dsid];
 y_max = nanmax(Y(:));
 x_max = max(T);
 
-if md=="simpleweak" && metric=="fraction"
-    %simplebindingweak_fraction- omegaDP kd1..kdn
-    p0 = [.02; [x_max/2;x_max;1E4*ones(1, nSets-2)']];
-    lb = [0; 200*ones(1, nSets)'];
-    ub = [1E2; maxKD*ones(1, nSets)'];
-elseif md=="simpleweak" && metric=="fluo"
-    %simplebindingweak_fluo- omegaDP kd1..kdn amp off
-    p0 = [5; [x_max/2;x_max;1E4*ones(1, nSets-2)']; 100; 0];
-    lb = [0; 200*ones(1, nSets)'; 0; 0];
-    ub = [Inf; maxKD*ones(1, nSets)'; 1E4; 1E4];
-end
+[p0, lb, ub] = getInits(expmnt, md, metric ,x_max, y_max, nSets);
 
 
 [k0, mse] = globfit2('expmnt',expmnt, 'metric', metric, 'md', md, 'maxKD', maxKD);
@@ -95,21 +85,7 @@ end
 %
 params = cell(1, 3);
 for i = 1:length(k0)
-    params{1, i} = {['k', num2str(i)],k0(i), 0};
-end
-
-if md=="hill"
-    hillMax = 10;
-    params{1, nSets+2}{4} = hillMax;
-end
-
-for i = 2:nSets+1
-    params{1, i}{4} = maxKD;
-end
-
-if metric=="fluo"
-    params{1, nSets+2}{4} = 1E4;
-    params{1, nSets+3}{4} = 1E4;
+    params{1, i} = {['k', num2str(i)],k0(i), lb(i), ub(i)};
 end
 
 model = struct;
