@@ -8,6 +8,7 @@ expmnt = 'affinities';
 md = 'simpleweak';
 metric = "fraction";
 nSimu = 1E4;
+minKD = 200;
 maxKD = 1E4;
 %options must be specified as name, value pairs. unpredictable errors will
 %occur, otherwise.
@@ -76,7 +77,7 @@ data.X =  [T dsid];
 y_max = nanmax(Y(:));
 x_max = max(T);
 
-[p0, lb, ub] = getInits(expmnt, md, metric ,x_max, y_max, nSets);
+[p0, lb, ub] = getInits(expmnt, md, metric ,x_max, y_max, nSets, 'minKD', minKD, 'maxKD', maxKD);
 
 
 [k0, mse] = globfit2('expmnt',expmnt, 'metric', metric, 'md', md, 'maxKD', maxKD);
