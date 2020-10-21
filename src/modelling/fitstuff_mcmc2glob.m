@@ -53,14 +53,17 @@ for k = 1:nSets
     elseif metric == "fluo"
         yo{k} = dorsalResultsDatabase.meanAllMaxFluoEmbryo(cond);
     end
+
+    [xs{k}, ys{k}]= processVecs(xo{k}, yo{k}, xrange(k, :));
+    dsid = [dsid; k*ones(size(xs{k}))];
+    
     if isnan(xrange(k, 1))
         xrange(k, 1) = min(xo{k});
     end
-     if isnan(xrange(k, 2))
+    if isnan(xrange(k, 2))
         xrange(k, 2) = max(xo{k});
     end
-    [xs{k}, ys{k}]= processVecs(xo{k}, yo{k}, xrange(k, :));
-    dsid = [dsid; k*ones(size(xs{k}))];
+    
     T = [T; xs{k}];
     Y = [Y; ys{k}];
 end
@@ -97,7 +100,7 @@ elseif md=="simpleweak" && metric=="fluo"
 end
 model.sigma2 = mse;
 
-options.waitbar = false;
+options.waitbar = true;
 options.nsimu = nSimu;
 options.updatesigma = 1;
 [results,chain,s2chain] = mcmcrun(model,data,params,options);
@@ -117,15 +120,17 @@ chainstats(chain,results)
 %ideally, these guys look like ellipses. if certain parameters give weird
 %shapes, it might mean those parameters should be removed from the model if
 %possible
-figure(3); clf
+pairFig = figure; clf
 mcmcplot(chain,[],results,'pairs', .5);
 % 
+
 
 figure(4); clf
 til = tiledlayout(1, nSets);
 dsid2 = [];
 
 xx = (0:10:max(data.X(:,1)))';
+
 for k = 1:nSets
     dsid2 = [dsid2; k*ones(length(xx), 1)];
 end

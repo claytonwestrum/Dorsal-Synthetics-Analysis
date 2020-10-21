@@ -2,8 +2,8 @@ function [p0, lb, ub] = getInits(expmnt, md, metric, x_max, y_max, nSets, vararg
 
 minKD = 200;
 maxKD = 1E4;
-minw = 0; %1E-2
-maxw = Inf; %1E2
+minw = 1E-3; %1E-2
+maxw = 1E3; %1E2
 
 %options must be specified as name, value pairs. unpredictable errors will
 %occur, otherwise.
@@ -16,7 +16,7 @@ end
 
 if expmnt == "affinities" && md=="simpleweak" && metric=="fraction" 
     %simplebindingweak_fraction- omegaDP kd1..kdn
-    p0 = [.02; [x_max/2;x_max;maxKD.*ones(1, nSets-2)']];
+    p0 = [1; [x_max/2;x_max;maxKD.*ones(1, nSets-2)']];
     lb = [minw; minKD.*ones(1, nSets)'];
     ub = [maxw; maxKD*ones(1, nSets)'];
 elseif expmnt == "affinities" && md=="simpleweak" && metric=="fluo"
