@@ -96,9 +96,14 @@ elseif md=="simpleweak" && metric=="fluo"
 end
 model.sigma2 = mse;
 
+options.waitbar = false;
 options.nsimu = nSimu;
 options.updatesigma = 1;
 [results,chain,s2chain] = mcmcrun(model,data,params,options);
+
+burnInTime = .25; %let's burn the first 25% of the chain
+chain = chain(round(burnInTime*nSimu):nSimu, :);
+s2chain = s2chain(round(.25*nSimu):nSimu, :);
 
 chainfig = figure(); clf
 mcmcplot(chain,[],results,'chainpanel')
