@@ -94,13 +94,24 @@ for i = 1:length(k0)
 end
 
 model = struct;
-if md=="simpleweak" && metric=="fraction"
+
+if expmnt == "affinities" && md=="simpleweak" && metric=="fraction"
     model.ssfun = @funss_simpleweakfraction;
-elseif md=="simpleweak" && metric=="fluo"
+    mdl = @(x, p)subfun_simplebinding_weak_fraction_std2(x, p);
+elseif expmnt == "affinities" && md=="simpleweak" && metric=="fluo"
     model.ssfun = @funss_simpleweakfluo;
+    mdl = @(x, p)subfun_simplebinding_weak_fluo_std2(x, p);
+elseif expmnt == "phases" && md=="simpleweak" && metric=="fraction"
+    model.ssfun = @funss_simpleweakfraction_phases;
+    mdl = @(x, p)subfun_simplebinding_weak_fraction_std2_phases(x, p);
+elseif expmnt == "phases" && md=="simpleweak" && metric=="fluo"
+    model.ssfun = @funss_simpleweakfluo_phases;
+    mdl = @(x, p)subfun_simplebinding_weak_fluo_std2_phases(x, p);
 end
+
 model.sigma2 = mse;
 
+options.drscale = 5;
 options.waitbar = wb;
 options.nsimu = nSimu;
 options.updatesigma = 1;
@@ -137,11 +148,7 @@ if displayFigures
         dsid2 = [dsid2; k*ones(length(xx), 1)];
     end
     
-    if md=="simpleweak" && metric=="fraction"
-        mdl = @(x, p)subfun_simplebinding_weak_fraction_std2(x, p);
-    elseif md=="simpleweak" && metric=="fluo"
-        mdl = @(x, p)subfun_simplebinding_weak_fluo_std2(x, p);
-    end
+
     out = mcmcpred(results,chain,[],repmat(xx, nSets, 1), mdl);
     % mcmcpredplot(out);
     nn = (size(out.predlims{1}{1},1) + 1) / 2;
@@ -171,10 +178,10 @@ if displayFigures
         xlim([0,3500])
         
         if expmnt == "affinities" 
-            vartheta = 'KD = '
+            vartheta = 'KD = ';
             consttheta = ' \omega'' = ';
         elseif expmnt == "phases"
-            consttheta = 'KD = '
+            consttheta = 'KD = ';
             vartheta = ' \omega'' = ';
         end
         
@@ -278,17 +285,6 @@ Amodel = (((x./KD(dsid)).*omegaDP)./(1+x./KD(dsid)+(x./KD(dsid)).*omegaDP));
 ss = sum((data.ydata(:,2)-Amodel).^2);
 end
 
-function yfit = subfun_simplebinding_weak_fraction(params,X)
-%simplebinding in the weak promoter limit.
-x = X(:,1);        % unpack time from X
-dsid = X(:,2);     % unpack dataset id from X
-params = params(:)'; %need a row vec
-omegaDP = params(1);
-KD = params(2:max(dsid)+1)';
-yfit = (((x./KD(dsid)).*omegaDP)./(1+x./KD(dsid)+(x./KD(dsid)).*omegaDP));
-end
-
-
 function yfit = subfun_simplebinding_weak_fraction_std2(x, params)
 %simplebinding in the weak promoter limit.
 
@@ -328,18 +324,6 @@ Amodel = amp.*(((x./KD(dsid)).*omegaDP)./(1+x./KD(dsid)+(x./KD(dsid)).*omegaDP))
 ss = sum((data.ydata(:,2)-Amodel).^2);
 end
 
-function yfit = subfun_simplebinding_weak_fluo(params,X)
-%simplebinding in the weak promoter limit.
-x = X(:,1);        % unpack time from X
-dsid = X(:,2);     % unpack dataset id from X
-params = params(:)'; %need a row vec
-omegaDP = params(1);
-KD = params(2:max(dsid)+1)';
-amp = params(max(dsid)+2);
-offset = params(max(dsid)+3);
-yfit = amp.*(((x./KD(dsid)).*omegaDP)./(1+x./KD(dsid)+(x./KD(dsid)).*omegaDP))+offset;
-end
-
 
 function yfit = subfun_simplebinding_weak_fluo_std2(x, params)
 %simplebinding in the weak promoter limit.
@@ -362,5 +346,91 @@ KD = params(2:max(dsid)+1)';
 amp = params(max(dsid)+2);
 offset = params(max(dsid)+3);
 yfit = amp.*(((x./KD(dsid)).*omegaDP)./(1+x./KD(dsid)+(x./KD(dsid)).*omegaDP)) + offset;
+
+end
+
+
+
+
+
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%phases
+
+function ss = funss_simpleweakfraction_phases(params, data)
+% sum-of-squares
+
+x = data.X(:,1);        % unpack time from X
+dsid = data.X(:,2);     % unpack dataset id from X
+nSets = max(dsid);
+params = params(:)'; %need a row vec
+KD = params(1);
+omegaDP = params(2:nSets+1)';
+Amodel = (((x./KD).*omegaDP(dsid))./(1+x./KD+(x./KD).*omegaDP(dsid)));
+ss = sum((data.ydata(:,2)-Amodel).^2);
+end
+
+function yfit = subfun_simplebinding_weak_fraction_std2_phases(x, params)
+%simplebinding in the weak promoter limit.
+
+X = [];
+n = 1;
+X(1, :) = [x(1), 1];
+for k = 2:length(x)
+    if x(k) < x(k-1)
+        n = n + 1;
+    end
+    X(k, 1) = x(k);
+    X(k, 2) = n;
+end
+
+dsid = X(:,2);     % unpack dataset id from X
+params = params(:)'; %need a row vec
+KD = params(1);
+omegaDP = params(2:max(dsid)+1)';
+yfit = (((x./KD).*omegaDP(dsid))./(1+x./KD+(x./KD).*omegaDP(dsid)));
+
+end
+
+%% simple weak fluo
+
+
+function ss = funss_simpleweakfluo_phases(params, data)
+% sum-of-squares
+
+x = data.X(:,1);        % unpack time from X
+dsid = data.X(:,2);     % unpack dataset id from X
+params = params(:)'; %need a row vec
+KD = params(1);
+omegaDP = params(2:max(dsid)+1)';
+amp = params(max(dsid)+2);
+offset = params(max(dsid)+3);
+Amodel = amp.*(((x./KD).*omegaDP(dsid))./(1+x./KD+(x./KD).*omegaDP(dsid))) + offset;
+ss = sum((data.ydata(:,2)-Amodel).^2);
+end
+
+
+function yfit = subfun_simplebinding_weak_fluo_std2_phases(x, params)
+%simplebinding in the weak promoter limit.
+
+X = [];
+n = 1;
+X(1, :) = [x(1), 1];
+for k = 2:length(x)
+    if x(k) < x(k-1)
+        n = n + 1;
+    end
+    X(k, 1) = x(k);
+    X(k, 2) = n;
+end
+
+dsid = X(:,2);     % unpack dataset id from X
+params = params(:)'; %need a row vec
+KD = params(1);
+omegaDP = params(2:max(dsid)+1)';
+amp = params(max(dsid)+2);
+offset = params(max(dsid)+3);
+yfit = amp.*(((x./KD).*omegaDP(dsid))./(1+x./KD+(x./KD).*omegaDP(dsid))) + offset;
 
 end

@@ -81,12 +81,18 @@ X = [T dsid];
 
 optimoptions = optimset('TolFun',1E-6, 'MaxIter', 1E6, 'MaxFunEvals', 1E5);
 
-if md=="simpleweak" && metric=="fraction"
+if expmnt == "affinities" && md=="simpleweak" && metric=="fraction"
     mdlo = @subfun_simplebinding_weak_fraction;
     mdl = @(p, x) subfun_simplebinding_weak_fraction_std(p, x);
-elseif md=="simpleweak" && metric=="fluo"
+elseif expmnt == "affinities" && md=="simpleweak" && metric=="fluo"
     mdlo = @subfun_simplebinding_weak_fluo;
     mdl = @(p, x) subfun_simplebinding_weak_fluo_std(p, x);
+elseif expmnt == "phases" && md=="simpleweak" && metric=="fraction"
+    mdlo = @subfun_simplebinding_weak_fraction_phases;
+    mdl = @(p, x) subfun_simplebinding_weak_fraction_std_phases(p, x);
+elseif expmnt == "phases" && md=="simpleweak" && metric=="fluo"
+    mdlo = @subfun_simplebinding_weak_fluo_phases;
+    mdl = @(p, x) subfun_simplebinding_weak_fluo_std_phases(p, x);
 end
 
 [b,~,res,~,~,~, Jacobian] = lsqcurvefit(mdlo,p0,X,Y, lb, ub, optimoptions);
@@ -113,12 +119,23 @@ if displayFigures
     
     X2 = [repmat(xx, nSets, 1), dsid2];
     
-    if md=="simpleweak" && metric=="fraction"
+    if expmnt == "affinities" && md=="simpleweak" && metric=="fraction"
         yfit2 = subfun_simplebinding_weak_fraction(b, X2);
-    elseif md=="simpleweak" && metric=="fluo"
+    elseif expmnt == "affinities" && md=="simpleweak" && metric=="fluo"
         yfit2 = subfun_simplebinding_weak_fluo(b, X2);
+    elseif expmnt == "phases" && md=="simpleweak" && metric=="fraction"
+        yfit2 = subfun_simplebinding_weak_fraction_phases(b, X2);
+    elseif expmnt == "phases" && md=="simpleweak" && metric=="fluo"
+        yfit2 = subfun_simplebinding_weak_fluo_phases(b, X2);
     end
     
+    if expmnt == "affinities"
+            vartheta = 'KD = ';
+            consttheta = ' \omega'' = ';
+    elseif expmnt == "phases"
+        consttheta = 'KD = ';
+        vartheta = ' \omega'' = ';
+    end
     
     for k = 1:nSets
         
@@ -131,12 +148,12 @@ if displayFigures
         %     xlim([0, max(xx)]);
         xlim([0, 3500]);
         if metric=="fraction"
-            title({enhancers{k}, ['KD = ' num2str(round2(b(k+1))), ' (', num2str(round2(CI(k+1, 1))), ' ', num2str(round2(CI(k+1, 2))) ' )'],...
-                [' \omega'' = ', num2str(round2(b(1))), ' (', num2str(round2(CI(1, 1))), ' ', num2str(round2(CI(1, 2))), ' )']})
+            title({enhancers{k}, [vartheta, num2str(round2(b(k+1))), ' (', num2str(round2(CI(k+1, 1))), ' ', num2str(round2(CI(k+1, 2))) ' )'],...
+                [consttheta, num2str(round2(b(1))), ' (', num2str(round2(CI(1, 1))), ' ', num2str(round2(CI(1, 2))), ' )']})
             ylim([0, 1]);
         elseif metric=="fluo"
-            title({enhancers{k}, ['KD = ' num2str(round2(b(k+1))), ' (', num2str(round2(CI(k+1, 1))), ' ', num2str(round2(CI(k+1, 2))) ' )'],...
-                [' \omega'' = ', num2str(round2(b(1))), ' (', num2str(round2(CI(1, 1))), ' ', num2str(round2(CI(1, 2))), ' )'],...
+            title({enhancers{k}, [vartheta, num2str(round2(b(k+1))), ' (', num2str(round2(CI(k+1, 1))), ' ', num2str(round2(CI(k+1, 2))) ' )'],...
+                [consttheta, num2str(round2(b(1))), ' (', num2str(round2(CI(1, 1))), ' ', num2str(round2(CI(1, 2))), ' )'],...
                 [' amp = ', num2str(round2(b(end-1))), ' (', num2str(round2(CI(end-1, 1))), ' ', num2str(round2(CI(end-1, 2))), ' )'],...
                 [' off = ', num2str(round2(b(end))), ' (', num2str(round2(CI(end, 1))), ' ', num2str(round2(CI(end, 2))), ' )'],...
                 })
@@ -321,6 +338,119 @@ yfit = amp.*(((x./KD(dsid)).*omegaDP)./(1+x./KD(dsid)+(x./KD(dsid)).*omegaDP)) +
 end
 
 
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%% phases
+
+function yfit = subfun_simplebinding_weak_fraction_phases(params,X)
+%simplebinding in the weak promoter limit.
+x = X(:,1);        % unpack time from X
+
+X3 = [];
+n = 1;
+X3(1, :) = [x(1), 1];
+for k = 2:length(x)
+    if x(k) < x(k-1)
+        n = n + 1;
+    end
+    X3(k, 1) = x(k);
+    X3(k, 2) = n;
+end
+dsid = X(:,2);     % unpack dataset id from X
+nSets = max(dsid);
+
+params = params(:)'; %need a row vec
+
+KD = params(1);
+omegaDP = params(2:nSets+1)';
+
+yfit = (((x./KD).*omegaDP(dsid))./(1 + (x./KD) +((x./KD).*omegaDP(dsid))));
+
+end
+
+
+function yfit = subfun_simplebinding_weak_fraction_std_phases(params, x)
+%simplebinding in the weak promoter limit.
+
+X = [];
+n = 1;
+X(1, :) = [x(1), 1];
+for k = 2:length(x)
+    if x(k) < x(k-1)
+        n = n + 1;
+    end
+    X(k, 1) = x(k);
+    X(k, 2) = n;
+end
+
+dsid = X(:,2);     % unpack dataset id from X
+nSets = max(dsid);
+
+params = params(:)'; %need a row vec
+
+KD = params(1);
+omegaDP = params(2:nSets+1)';
+
+yfit = (((x./KD).*omegaDP(dsid))./(1+ (x./KD)+ ((x./KD).*omegaDP(dsid))));
+
+end
+
+%% simple weak fluo
+
+function yfit = subfun_simplebinding_weak_fluo_phases(params,X)
+%simplebinding in the weak promoter limit.
+x = X(:,1);        % unpack time from X
+
+X3 = [];
+n = 1;
+X3(1, :) = [x(1), 1];
+for k = 2:length(x)
+    if x(k) < x(k-1)
+        n = n + 1;
+    end
+    X3(k, 1) = x(k);
+    X3(k, 2) = n;
+end
+dsid3 = X3(:, 2);
+dsid = X(:,2);     % unpack dataset id from X
+nSets = max(dsid);
+
+params = params(:)'; %need a row vec
+
+KD = params(1);
+omegaDP = params(2:nSets+1)';
+amp = params(max(dsid)+2);
+offset = params(max(dsid)+3);
+yfit = amp.*(((x./KD).*omegaDP(dsid))./(1 + (x./KD) + ((x./KD).*omegaDP(dsid)))) + offset;
+
+end
+
+
+function yfit = subfun_simplebinding_weak_fluo_std_phases(params, x)
+%simplebinding in the weak promoter limit.
+
+X = [];
+n = 1;
+X(1, :) = [x(1), 1];
+for k = 2:length(x)
+    if x(k) < x(k-1)
+        n = n + 1;
+    end
+    X(k, 1) = x(k);
+    X(k, 2) = n;
+end
+
+dsid = X(:,2);     % unpack dataset id from X
+nSets = max(dsid);
+
+params = params(:)'; %need a row vec
+
+KD = params(1);
+omegaDP = params(2:nSets+1)';
+amp = params(max(dsid)+2);
+offset = params(max(dsid)+3);
+yfit = amp.*(((x./KD).*omegaDP(dsid))./(1+ (x./KD) +((x./KD).*omegaDP(dsid)))) + offset;
+
+end
 
 
 
