@@ -111,6 +111,11 @@ options.nsimu = nSimu;
 options.updatesigma = 1;
 [results,chain,s2chain] = mcmcrun(model,data,params,options);
 
+% results = [];
+% [results,chain,s2chain,sschain]=mcmcrun(model,data,params,options,results);
+% [results,chain,s2chain,sschain]=mcmcrun(model,data,params,options,results);
+% [results,chain,s2chain,sschain]=mcmcrun(model,data,params,options,results);
+
 if displayFigures
     burnInTime = .25; %let's burn the first 25% of the chain
     chain = chain(round(burnInTime*nSimu):nSimu, :);
@@ -209,40 +214,41 @@ end
 
 
 covfig = figure;
-til3 = tiledlayout('flow')
+til3 = tiledlayout('flow');
 
+cv = @(x, y) sqrt(abs(x)) ./ sqrt((y'*y));
 nexttile;
-imagesc(sqrt(abs(results.cov)))
+imagesc(cv(results.cov, results.mean));
 colorbar;
-set(gca,'ColorScale','log')
+% set(gca,'ColorScale','log')
 ylabel('parameter 1')
 xlabel('parameter 2')
 title('Covariance matrix of the parameters');
-
-nexttile;
-imagesc(sqrt(abs(results.qcov)))
-colorbar;
-set(gca,'ColorScale','log')
-ylabel('parameter 1')
-xlabel('parameter 2')
-title('qcov matrix of the proposal parameters');
-
-nexttile;
-imagesc(sqrt(abs(results.qcov2)))
-colorbar;
-set(gca,'ColorScale','log')
-ylabel('parameter 1')
-xlabel('parameter 2')
-title('qcov2 covariance matrix of the proposal parameters');
-
-
-nexttile;
-imagesc(results.R)
-colorbar;
-set(gca,'ColorScale','log')
-ylabel('parameter 1')
-xlabel('parameter 2')
-title('R covariance matrix of the proposal parameters');
+% 
+% nexttile;
+% imagesc(sqrt(abs(results.qcov)))
+% colorbar;
+% set(gca,'ColorScale','log')
+% % ylabel('parameter 1')
+% xlabel('parameter 2')
+% title('qcov matrix of the proposal parameters');
+% 
+% nexttile;
+% imagesc(sqrt(abs(results.qcov2)))
+% colorbar;
+% set(gca,'ColorScale','log')
+% ylabel('parameter 1')
+% xlabel('parameter 2')
+% title('qcov2 covariance matrix of the proposal parameters');
+% 
+% 
+% nexttile;
+% imagesc(results.R)
+% colorbar;
+% set(gca,'ColorScale','log')
+% ylabel('parameter 1')
+% xlabel('parameter 2')
+% title('R covariance matrix of the proposal parameters');
 
 colormap(viridis);
 

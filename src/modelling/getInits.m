@@ -2,8 +2,9 @@ function [p0, lb, ub] = getInits(expmnt, md, metric, x_max, y_max, nSets, vararg
 
 minKD = 200;
 maxKD = 1E4;
-minw = 1E-3; %1E-2
-maxw = 1E3; %1E2
+minw = 1E-2; %1E-2
+maxw = 1E1; %1E2
+omega0 = 1;
 
 %options must be specified as name, value pairs. unpredictable errors will
 %occur, otherwise.
@@ -26,14 +27,14 @@ elseif expmnt == "affinities" && md=="simpleweak" && metric=="fluo"
     ub = [maxw; maxKD*ones(1, nSets)'; 1E3; 1E3];
 elseif expmnt == "phases" && md=="simpleweak" && metric=="fraction"
      %simplebindingweak_fraction- omegaDP1...omegaDPn kd
-    p0 = [x_max/2; .02*ones(1, nSets)'];
-    lb = [minKD; 1E-3*ones(1, nSets)'];
-    ub = [maxKD; 1E3*ones(1, nSets)'];
+    p0 = [x_max/2; omega0*ones(1, nSets)'];
+    lb = [minKD; minw*ones(1, nSets)'];
+    ub = [maxKD; maxw*ones(1, nSets)'];
 elseif expmnt == "phases" && md=="simpleweak" && metric=="fluo"
      %simplebindingweak_fraction- omegaDP1...omegaDPn kd amp off
-    p0 = [x_max/2; .02*ones(1, nSets)'; 500; 10];
-    lb = [minKD; 1E-3*ones(1, nSets)'; 10; 10];
-    ub = [maxKD; 1E3*ones(1, nSets)'; 1E3; 1E3];
+    p0 = [x_max/2; omega0*ones(1, nSets)'; 500; 10];
+    lb = [minKD; minw*ones(1, nSets)'; 10; 10];
+    ub = [maxKD; maxw*ones(1, nSets)'; 1E3; 1E3];
 end
 
 
