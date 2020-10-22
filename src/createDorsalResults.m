@@ -2,7 +2,8 @@ function dorsalResults = createDorsalResults(DataType, varargin)
 
 displayTiles = false;
 
-minNuclei = 3; %minimum total nuclei for a bin to be plottable
+%maybe in the future, i should try minNuclei=4 and minEmbryos=3. 
+minNuclei = 3; %minimum total nuclei for a bin to be plottable.
 minEmbryos = 2; %minimum number of embryos per bin
 
 for i = 1:length(varargin)
@@ -13,7 +14,8 @@ for i = 1:length(varargin)
     end
 end
 
-[~, resultsFolder, prefixes] = getDorsalPrefixes(DataType);
+[~, resultsFolder] = getDorsalFolders;
+prefixes = getProjectPrefixes(DataType, 'onlyApproved');
 
 load([resultsFolder,filesep,DataType,filesep,'dlfluobins.mat'], 'dlfluobins');
 
@@ -159,7 +161,7 @@ for nc = 1
     dorsalResults{nc}.seTurnOnsEmbryo = filteredWeightedSE(dorsalResults{nc}.allTurnOnsEmbryo);
     
     dorsalResults{nc}.meanAllMaxFluoEmbryo = filteredWeightedMean(dorsalResults{nc}.allMaxFluoEmbryo);
-    dorsalResults{nc}. seAllMaxFluoEmbryo = filteredWeightedSE(dorsalResults{nc}.allMaxFluoEmbryo);
+    dorsalResults{nc}.seAllMaxFluoEmbryo = filteredWeightedSE(dorsalResults{nc}.allMaxFluoEmbryo);
     
     dorsalResults{nc}.dorsalFluoBins  = dlfluobins;
     dorsalResults{nc}.DataType = DataType;

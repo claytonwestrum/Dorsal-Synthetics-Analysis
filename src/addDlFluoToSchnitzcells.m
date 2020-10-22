@@ -2,6 +2,11 @@ function schnitzcells = addDlFluoToSchnitzcells(Prefix)
 
 displayFigures = false;
 
+if displayFigures
+%     tileFig = figure(); %commented out because it's probably not useful
+    holdFig = figure();
+end
+
 liveExperiment = LiveExperiment(Prefix);
 schnitzcells = getSchnitzcells(liveExperiment);
 schnitzcellsOld = schnitzcells;
@@ -36,6 +41,7 @@ schnitzcells = addRelativeTimeToSchnitzcells(schnitzcells, FrameInfo, ncFrames);
 
 %filter out schnitz that last too short or that are too close to the edge
 schnitzcells = filterSchnitz(schnitzcells, imSize);
+
 
 %filter out schnitz that have an empty fluo field.
 schnitzcells = filterSchnitzFurther(...
@@ -88,22 +94,22 @@ for s = approvedSchnitzes
     
     if displayFigures && schnitzcells(s).cycle == 12 && ~isnan(schnitzcells(s).FluoFeature)
         
-        figure(tileFig)
-        nexttile;
-        plot(schnitzcells(s).frames, schnitzcells(s).FluoTimeTrace, '-k');
-        hold on
-        plot(midCycle, schnitzcells(s).FluoFeature, 'ob');
-        hold off
-        xticks([]);
-        yticks([round(min(schnitzcells(s).FluoTimeTrace)), round(max(schnitzcells(s).FluoTimeTrace))]);
+%         figure(tileFig)
+%         nexttile;
+%         plot(schnitzcells(s).frames, schnitzcells(s).FluoTimeTrace, '-k');
+%         hold on
+%         plot(midCycle, schnitzcells(s).FluoFeature, 'ob');
+%         hold off
+%         xticks([]);
+%         yticks([round(min(schnitzcells(s).FluoTimeTrace)), round(max(schnitzcells(s).FluoTimeTrace))]);
         %                 ylim([0, 3000]);
         
         figure(holdFig)
-        plot(1:length(schnitzcells(s).FluoTimeTrace), schnitzcells(s).FluoTimeTrace, '-k');
+%         plot(1:length(schnitzcells(s).FluoTimeTrace), schnitzcells(s).FluoTimeTrace, '-k');
+        plot(schnitzcells(s).timeSinceAnaphase, schnitzcells(s).FluoTimeTrace, '-k');
         hold on
-        plot(midCycleFram, schnitzcells(s).FluoFeature, 'ob');
-        %                 ylim([0, 3000]);
-        
+%         plot(midCycleFrame, schnitzcells(s).FluoFeature, 'ob');
+        ylim([0, 3000]);
         
     end
     

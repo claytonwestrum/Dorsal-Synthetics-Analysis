@@ -29,6 +29,15 @@ end
 
 compiledProject = [];
 
+%do some nuclear quality controle
+
+threshold_frames = 10; %10 frames ~1.5mins under standard conditions
+for k = 1:length(schnitzcells)
+    if length(schnitzcells(k).frames) <= threshold_frames
+        schnitzcells(k).Approved = false;
+    end
+end
+
 approvedSchnitzes = find([schnitzcells.Approved]);
 
 n = 0;
@@ -65,11 +74,13 @@ for s = approvedSchnitzes
         compiledProject(n).particleFluo= CompiledParticles(p).Fluo;
         compiledProject(n).particleFluo3Slice = CompiledParticles(p).Fluo3;
         compiledProject(n).particleOffset = CompiledParticles(p).Off;
+        compiledProject(n).particleFluoError = CompiledParticles(p).FluoError;
+
         if isfield(CompiledParticles, 'Fluo3DRaw')
             compiledProject(n).particleFluo3D = CompiledParticles(p).Fluo3DRaw;
         else
             compiledProject(n).particleFluo3D = nan(1, length(CompiledParticles(p).Frame));
-            warning("missing gauss 3D intensities for" + Prefix);
+            warning("missing gauss 3D intensities for " + Prefix);
         end
         
         %                 fluo = compiledProject(n).particleFluo3D;
@@ -81,7 +92,7 @@ for s = approvedSchnitzes
         compiledProject(n).particleFluo95= fluo(fluo>=prctile(fluo,95));
         compiledProject(n).particleTimeOn = min(tau);
         
-        if length(tau) > 1
+        if length(fluo) > 1
             compiledProject(n).particleAccumulatedFluo = trapz(tau, fluo, 2);
         else
             compiledProject(n).particleAccumulatedFluo = fluo;
@@ -102,6 +113,7 @@ for s = approvedSchnitzes
         
     end
 end
+
 
 assert(~isempty(compiledProject))
 

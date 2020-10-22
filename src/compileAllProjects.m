@@ -14,6 +14,9 @@ compiledProjects = cell(1, length(prefixes));
 % 
 % 
 for k = 1:length(prefixes)
+%     prefixes{k}
+    clear LiveExperiment
+    TrackNuclei(prefixes{k},'retrack', 'nWorkers', 1);
 %     integrateSchnitzFluo(prefixes{k});
 %     TrackmRNADynamics(prefixes{k});
     CompileParticles(prefixes{k},  'minBinSize', 0, 'MinParticles', 0,...

@@ -2,8 +2,8 @@ function dorsalResults = addKeysToDorsalResults(dorsalResults)
 
  dataType = dorsalResults{1}.DataType;
  
- %nc14 is problematic and mostly uninteresting. let's just do 12 and 13. 
-    for ncIndex = 1:2
+ %nc14 is problematic and mostly uninteresting. let's just do 12
+    for ncIndex = 1
         
         %this field is problematic. 
          dorsalResults{ncIndex} = rmfield(dorsalResults{ncIndex}, 'allmrnasnomean');
