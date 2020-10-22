@@ -26,12 +26,12 @@ elseif expmnt == "affinities" && md=="simpleweak" && metric=="fluo"
     ub = [maxw; maxKD*ones(1, nSets)'; 1E3; 1E3];
 elseif expmnt == "phases" && md=="simpleweak" && metric=="fraction"
      %simplebindingweak_fraction- omegaDP1...omegaDPn kd
-    p0 = [x_max/2; .02*ones(1, nSets-2)'];
+    p0 = [x_max/2; .02*ones(1, nSets)'];
     lb = [minKD; 1E-3*ones(1, nSets)'];
     ub = [maxKD; 1E3*ones(1, nSets)'];
 elseif expmnt == "phases" && md=="simpleweak" && metric=="fluo"
      %simplebindingweak_fraction- omegaDP1...omegaDPn kd amp off
-    p0 = [x_max/2; .02*ones(1, nSets-2)'; 500; 0];
+    p0 = [x_max/2; .02*ones(1, nSets)'; 500; 0];
     lb = [minKD; 1E-3*ones(1, nSets)'; 0; 10];
     ub = [maxKD; 1E3*ones(1, nSets)'; 1E3; 1E3];
 end

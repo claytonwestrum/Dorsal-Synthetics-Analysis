@@ -2,13 +2,14 @@ function [b, mse] = globfit2(varargin)
 % Set up data so that Y is a function of T with a specific functional form,
 % but there are multiple groups and one parameter varies across groups.
 
-close all;
 [~, resultsFolder] = getDorsalFolders;
 load([resultsFolder, filesep, 'dorsalResultsDatabase.mat'], 'dorsalResultsDatabase')
 
-expmnt = 'affinities';
-md = 'simpleweak';
+expmnt = "affinities";
+md = "simpleweak";
 metric = "fraction";
+displayFigures = true;
+minKD = 0;
 maxKD = 2E4;
 %options must be specified as name, value pairs. unpredictable errors will
 %occur, otherwise.
@@ -50,7 +51,7 @@ for k = 1:nSets
     if metric == "fraction"
         yo{k} = dorsalResultsDatabase.meanFracFluoEmbryo(cond);
     elseif metric == "fluo"
-%         yo{k} = dorsalResultsDatabase.meanAllMaxFluoEmbryo(cond);
+        %         yo{k} = dorsalResultsDatabase.meanAllMaxFluoEmbryo(cond);
         yo{k} = dorsalResultsDatabase.meanallmrnasEmbryo(cond);
     end
     [xs{k}, ys{k}]= processVecs(xo{k}, yo{k}, xrange(k, :));
@@ -59,14 +60,16 @@ for k = 1:nSets
     Y = [Y; ys{k}];
 end
 
-gscatter(T,Y,dsid)
+if displayFigures
+    gscatter(T,Y,dsid)
+end
 
 
 
 y_max = nanmax(Y(:));
 x_max = max(T);
 
-[p0, lb, ub] = getInits(expmnt, md, metric ,x_max, y_max, nSets);
+[p0, lb, ub] = getInits(expmnt, md, metric ,x_max, y_max, nSets, 'minKD', minKD, 'maxKD', maxKD);
 
 
 
@@ -90,56 +93,59 @@ end
 
 
 CI = nlparci(b,res,'jacobian',Jacobian);
-xx = (0:1:max(X(:,1)))';
-xxx = repmat(xx, nSets, 1);
-[Ypred,delta] = nlpredci(mdl,xxx,b,res,'Jacobian',full(Jacobian));
-yl = Ypred - delta;
-yu = Ypred + delta;
-
 mse = mean(res.^2);
 
-figure(1);
-til = tiledlayout(1, nSets);
-
-dsid2 = [];
-for k = 1:nSets
-    dsid2 = [dsid2; k*ones(length(xx), 1)];
-end
-
-X2 = [repmat(xx, nSets, 1), dsid2];
-
-if md=="simpleweak" && metric=="fraction"
-    yfit2 = subfun_simplebinding_weak_fraction(b, X2);
-elseif md=="simpleweak" && metric=="fluo"
-    yfit2 = subfun_simplebinding_weak_fluo(b, X2);
-end
-
-
-for k = 1:nSets
+if displayFigures
+    xx = (0:1:max(X(:,1)))';
+    xxx = repmat(xx, nSets, 1);
+    [Ypred,delta] = nlpredci(mdl,xxx,b,res,'Jacobian',full(Jacobian));
+    yl = Ypred - delta;
+    yu = Ypred + delta;
     
-    yy = yfit2(X2(:, 2)==k);
-    yyl = yl(X2(:, 2)==k);
-    yyu = yu(X2(:, 2)==k);
-    nexttile;
-    plot(xo{k}, yo{k}, 'o-', xx, yy, '-', xx,yyl, '--r', xx, yyu, '--r');
-%     ylim([0, max(yfit2)*1.1]);
-%     xlim([0, max(xx)]);
-    xlim([0, 3500]);
-     if metric=="fraction"
-        title({enhancers{k}, ['KD = ' num2str(round2(b(k+1))), ' (', num2str(round2(CI(k+1, 1))), ' ', num2str(round2(CI(k+1, 2))) ' )'],...
-        [' \omega'' = ', num2str(round2(b(1))), ' (', num2str(round2(CI(1, 1))), ' ', num2str(round2(CI(1, 2))), ' )']})
-        ylim([0, 1]);
-    elseif metric=="fluo"
-        title({enhancers{k}, ['KD = ' num2str(round2(b(k+1))), ' (', num2str(round2(CI(k+1, 1))), ' ', num2str(round2(CI(k+1, 2))) ' )'],...
-        [' \omega'' = ', num2str(round2(b(1))), ' (', num2str(round2(CI(1, 1))), ' ', num2str(round2(CI(1, 2))), ' )'],...
-        [' amp = ', num2str(round2(b(end-1))), ' (', num2str(round2(CI(end-1, 1))), ' ', num2str(round2(CI(end-1, 2))), ' )'],...
-        [' off = ', num2str(round2(b(end))), ' (', num2str(round2(CI(end, 1))), ' ', num2str(round2(CI(end, 2))), ' )'],...
-        })
-        ylim([0, y_max]);
+    
+    figure(1);
+    til = tiledlayout(1, nSets);
+    
+    dsid2 = [];
+    for k = 1:nSets
+        dsid2 = [dsid2; k*ones(length(xx), 1)];
     end
     
+    X2 = [repmat(xx, nSets, 1), dsid2];
+    
+    if md=="simpleweak" && metric=="fraction"
+        yfit2 = subfun_simplebinding_weak_fraction(b, X2);
+    elseif md=="simpleweak" && metric=="fluo"
+        yfit2 = subfun_simplebinding_weak_fluo(b, X2);
+    end
+    
+    
+    for k = 1:nSets
+        
+        yy = yfit2(X2(:, 2)==k);
+        yyl = yl(X2(:, 2)==k);
+        yyu = yu(X2(:, 2)==k);
+        nexttile;
+        plot(xo{k}, yo{k}, 'o-', xx, yy, '-', xx,yyl, '--r', xx, yyu, '--r');
+        %     ylim([0, max(yfit2)*1.1]);
+        %     xlim([0, max(xx)]);
+        xlim([0, 3500]);
+        if metric=="fraction"
+            title({enhancers{k}, ['KD = ' num2str(round2(b(k+1))), ' (', num2str(round2(CI(k+1, 1))), ' ', num2str(round2(CI(k+1, 2))) ' )'],...
+                [' \omega'' = ', num2str(round2(b(1))), ' (', num2str(round2(CI(1, 1))), ' ', num2str(round2(CI(1, 2))), ' )']})
+            ylim([0, 1]);
+        elseif metric=="fluo"
+            title({enhancers{k}, ['KD = ' num2str(round2(b(k+1))), ' (', num2str(round2(CI(k+1, 1))), ' ', num2str(round2(CI(k+1, 2))) ' )'],...
+                [' \omega'' = ', num2str(round2(b(1))), ' (', num2str(round2(CI(1, 1))), ' ', num2str(round2(CI(1, 2))), ' )'],...
+                [' amp = ', num2str(round2(b(end-1))), ' (', num2str(round2(CI(end-1, 1))), ' ', num2str(round2(CI(end-1, 2))), ' )'],...
+                [' off = ', num2str(round2(b(end))), ' (', num2str(round2(CI(end, 1))), ' ', num2str(round2(CI(end, 2))), ' )'],...
+                })
+            ylim([0, y_max]);
+        end
+        
+    end
+    title(til, 'global fit, gradient')
 end
-title(til, 'global fit, gradient')
 end
 
 
