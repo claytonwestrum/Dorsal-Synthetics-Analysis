@@ -86,7 +86,7 @@ for e = 1:nEmbryos
             
             %             npartFluoEmbryo{nc-11}(bin, e) = particlesOfInterest;
             %             nschnitzFluoEmbryo{nc-11}(bin, e) = length(nucleiOfInterest);
-            nschnitzFluoEmbryo{nc-11}(bin, e) = length(find( [compiledProject.cycle] == nc & [compiledProject.dorsalFluoBin] == bin ));
+            nschnitzFluoEmbryo{nc-11}(bin, e) = length(find([compiledProject.cycle] == nc & [compiledProject.dorsalFluoBin] == bin ));
             npartFluoEmbryo{nc-11}(bin, e) = length(find([compiledProject.cycle] == nc & [compiledProject.dorsalFluoBin] == bin  & ~cellfun(@isempty, {compiledProject.particleFrames})));
             dorsalResults{nc-11}.allmrnasEmbryo(bin, e) = nanmean(spotAccumulatedFluo);
             dorsalResults{nc-11}.alldurationsEmbryo(bin, e) = nanmean(spotDurations);
@@ -136,10 +136,11 @@ for nc = 1
     
     
     
-    nSamples = 100;
+    nSamples = 500;
     
     filteredWeightedMean = @(x) ((nansum(x.*nschnitzFluoEmbryo{nc},embryoDim))./nSchnitzBinTotal{nc}).*binFilter{nc};
-    filteredWeightedSE = @(y) nanstd(bootstrp(nSamples, @(x) filteredWeightedMean(x), y,'Weights',nSchnitzBinTotalWithZeros{nc})', 0, embryoDim);
+    filteredWeightedSE = @(y) nanstd(bootstrp(nSamples, @(x) filteredWeightedMean(x), y,...
+        'Weights',nSchnitzBinTotalWithZeros{nc})', embryoDim);
     
     %     filteredWeightedMean = @(x) nanmean(x,2).*binFilter{nc}';
     %      filteredWeightedSE = @(y) nanstd(bootstrp(nSamples, @(x) filteredWeightedMean(x), y), 0, 1);
@@ -164,7 +165,18 @@ for nc = 1
     dorsalResults{nc}.DataType = DataType;
     
 end
-%
+
+%% SA: look at the max 
+y = dorsalResults{nc}.meanAllMaxFluoEmbryo;
+y(isnan(y))=0;
+yE = dorsalResults{nc}. seAllMaxFluoEmbryo;
+yE(isnan(yE))=0;
+hold on
+errorbar(dlfluobins,y,yE,'-ko')
+x = linspace(min(dlfluobins),max(dlfluobins),length(dlfluobins));
+errorbar(x,y,yE,'-ro')
+hold off
+%%
 % allmrnasnc12 = dorsalResults{nc}.allmrnasnomean{:};
 % lens = [];
 % for b = 1:nBins

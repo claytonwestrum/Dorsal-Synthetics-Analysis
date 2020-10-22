@@ -11,52 +11,54 @@ else
     [~, resultsFolder, Prefixes] = getDorsalPrefixes(DataType);
 end
 
+%SA: this doesn't get used
 mind = 1;
 maxd = 1500;
 nBins = 20;
 
-% dlfluobins = mind:round(maxd/mind):maxd; %this is appropriate for taking instantaneous dorsal at ~50% through nc12 on the sp8
+dlfluobins = mind:round(maxd/mind):maxd; %this is appropriate for taking instantaneous dorsal at ~50% through nc12 on the sp8
 dlfluobins = 0:250:4500;
 % dlfluobins = [0:20:500, 501:250:3000];
 % dlfluobins = [0:10:249,250:50:499,500:250:4000];
 % dlfluobins = logspace(0, 3.6, 20);
-%% the fancy method to create pseudo dv spatial bins
-
-fspace = @(f, f1, mi, ma, n)  f1( linspace( f(mi), f(ma), n ) ); %generalization of the logspace and linspace functions
-sigma = 1/(maxd*sqrt(2*pi));
-c = 1/(2*sigma^2);
-p = 2;
-% dorsalGradient = @(x) maxd*exp(-c.*x.^p );
-% inverseGradient = @(x) ((-1/c).* log(x./maxd)).^(1/p);
-
-calib = 1500/1080;
-B = 520*calib; %constant offset
-M = -89*calib; %linear offset
-B = 0;
-M = 0;
-c = 5; %related to sigma
-dorsalGradient = @(x) (maxd*exp(-c*x.^p ) + B + M.*abs(x));
-inverseGradient = @(x) (-(1/c).* log( (x-B-M.*abs(x)) /maxd)).^(1/p);
-
-
-uDorsalGradient = @(x) -(maxd*exp(-c*x.^p ) + B + M.*abs(x)) + maxd;
-uInverseGradient = @(x) (-(1/c).* log( -(x - maxd - B - M.*abs(x)) /maxd)).^(1/p);
-
-
-dv = linspace(0,1, 20);
-% figure
-% plot(dv, dorsalGradient(dv))
-maxd2 = max(uDorsalGradient(dv));
-% dlfluobins = fspace(uInverseGradient,uDorsalGradient, mind, maxd2, nBins);
-% dlfluobins = [linspace(71,470, round(nBins/2)), linspace(471, 3027, round(nBins/2))];
-
-% dlfluobins = [71:10:470:, linspace(471, 3027, round(nBins/2))];
-
-% figure
-% bar(dlfluobins)
-% figure()
+% %% the fancy method to create pseudo dv spatial bins
+% 
+% fspace = @(f, f1, mi, ma, n)  f1( linspace( f(mi), f(ma), n ) ); %generalization of the logspace and linspace functions
+% sigma = 1/(maxd*sqrt(2*pi));
+% c = 1/(2*sigma^2);
+% p = 2;
+% % dorsalGradient = @(x) maxd*exp(-c.*x.^p );
+% % inverseGradient = @(x) ((-1/c).* log(x./maxd)).^(1/p);
+% 
+% calib = 1500/1080;
+% B = 520*calib; %constant offset
+% M = -89*calib; %linear offset
+% B = 0;
+% M = 0;
+% c = 5; %related to sigma
+% dorsalGradient = @(x) (maxd*exp(-c*x.^p ) + B + M.*abs(x));
+% inverseGradient = @(x) (-(1/c).* log( (x-B-M.*abs(x)) /maxd)).^(1/p);
+% 
+% 
+% uDorsalGradient = @(x) -(maxd*exp(-c*x.^p ) + B + M.*abs(x)) + maxd;
+% uInverseGradient = @(x) (-(1/c).* log( -(x - maxd - B - M.*abs(x)) /maxd)).^(1/p);
+% 
+% 
+% dv = linspace(0,1, 20);
+% % figure
+% % plot(dv, dorsalGradient(dv))
+% maxd2 = max(uDorsalGradient(dv));
+% % dlfluobins = fspace(uInverseGradient,uDorsalGradient, mind, maxd2, nBins);
+% % dlfluobins = [linspace(71,470, round(nBins/2)), linspace(471, 3027, round(nBins/2))];
+% 
+% % dlfluobins = [71:10:470:, linspace(471, 3027, round(nBins/2))];
+% 
+% % figure
+% % bar(dlfluobins)
+% % figure()
 save([resultsFolder,filesep,DataType,filesep,'dlfluobins.mat'], 'dlfluobins');
 
+%%
 allDorsal = [];
 dlfluobincounts = zeros(1, length(dlfluobins));
 
@@ -66,21 +68,30 @@ for e = 1:length(Prefixes)
         CompiledParticles = allData(e).Particles.CompiledParticles;
         approvedSchnitzes = find([schnitzcells.Approved]);
         
-        for s = approvedSchnitzes
-            
+        for s = approvedSchnitzes           
             dif = schnitzcells(s).FluoFeature - dlfluobins;
             [~,dlfluobin] = min(dif(dif>0));
-            if ~isempty(dlfluobin)
+            if ~isempty(dlfluobin) %SA: why would it be empty??
                 schnitzcells(s).dorsalFluoBin = single(dlfluobin);
                 dlfluobincounts(dlfluobin) = dlfluobincounts(dlfluobin) + 1;
             else
                 schnitzcells(s).dorsalFluoBin = NaN;
-            end
-            
+            end           
         end
         
         
         save([resultsFolder,filesep,Prefixes{e},filesep,Prefixes{e},'_lin.mat'], 'schnitzcells')
+   
+        % SA: make sure we have a reasonable number of nc12 nuclei with
+        % fluobin      
+        nc12Schnitz = [schnitzcells.cycle] == 12;
+        fluobinNc12Schnitz = [schnitzcells(nc12Schnitz).dorsalFluoBin];
+        usefulNc12Schnitz = sum(~isnan(fluobinNc12Schnitz));
+        assert(usefulNc12Schnitz > 14,'very few nuclei were assigned a fluobin in this dataset,')
+        
+        
+        
+        
         
         ch=1;
         for p = 1:length(CompiledParticles{ch})
@@ -103,14 +114,14 @@ for e = 1:length(Prefixes)
                 allDorsal = [allDorsal, dlfluo];
             end
             
-                dif = dlfluo - dlfluobins;
+            dif = dlfluo - dlfluobins;
 
             [~,dlfluobin] = min(dif(dif>0));
             
             if ~isempty(dlfluobin)
                 compiledProject(s).dorsalFluoBin = single(dlfluobin);
                 dlfluobincounts(dlfluobin) = dlfluobincounts(dlfluobin) + 1;
-            else
+            else %SA: why would this be empty??
                 compiledProject(s).dorsalFluoBin = NaN;
             end
             

@@ -1,7 +1,7 @@
 function schnitzcells = filterSchnitzFurther(schnitzcells)
 
 % Disapprove nuclei without
-%fluos.
+%fluos....why do some nuclei don't have Fluo??
 
 schnitzcellsOld = schnitzcells;
 

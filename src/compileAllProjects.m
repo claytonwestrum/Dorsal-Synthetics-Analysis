@@ -15,7 +15,7 @@ compiledProjects = cell(1, length(prefixes));
 % 
 for k = 1:length(prefixes)
 %     integrateSchnitzFluo(prefixes{k});
-    TrackmRNADynamics(prefixes{k});
+%     TrackmRNADynamics(prefixes{k});
     CompileParticles(prefixes{k},  'minBinSize', 0, 'MinParticles', 0,...
         'yToManualAlignmentPrompt');
     alignCompiledParticlesByAnaphase(prefixes{k});
@@ -26,14 +26,16 @@ hasAllPushed = [thisProject.hasSpots, thisProject.hasParticles,...
     thisProject.hasSchnitzcells, thisProject.hasCompiledParticles,...
     thisProject.anaphaseFramesAnnotated];
 
-% assert( all(hasAllPushed) ); 
-
-
-
+% assert( all(hasAllPushed) );
+% 
+for k = 1:length(prefixes)
+    checkSchnitzAssignmentToParticles(prefixes{k})
+end
 % 
 addDVStuffToSchnitzCells(DataType)
 
 binDorsal(DataType, false)
+
 
 for k = 1:length(prefixes)
     

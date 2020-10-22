@@ -36,7 +36,7 @@ for e = 1:length(allData)
     %to speed this up, remove unnecessary schnitzcells fields
     schnitzcells = removeSchnitzcellsFields(schnitzcells);
     
-    
+    % SA: this only checks that the sizes match I think
     checkSchnitzcellsCompiledParticlesConsistency(...
     schnitzcells,...
     CompiledParticles)
@@ -47,15 +47,15 @@ for e = 1:length(allData)
         schnitzcells = rmfield(schnitzcells, 'compiledParticle');
     end
     
-    
+    % SA: this gets the schnitz ID of each compiled particle and uses it to
+    % add the particle info to the corresponding schnitz. Also adds the DV
+    % bin info from the schnitz to the particle.
     for p = 1:length(CompiledParticles{ch})
         
         schnitzInd = CompiledParticles{ch}(p).schnitz;
         
-        %not sure where the misassignment to compileparticles happens
-        
-        assert(schnitzInd <= length(schnitzcells));
-        
+        %not sure where the misassignment to compileparticles happens       
+        assert(schnitzInd <= length(schnitzcells));        
         schnitzcells(schnitzInd).compiledParticle = uint16(p);
         
         if isfield(CompiledParticles{ch}(p), 'dvbin')
@@ -65,7 +65,8 @@ for e = 1:length(allData)
     end
     
     save([resultsFolder,filesep,Prefixes{e},filesep,Prefixes{e},'_lin.mat'], 'schnitzcells');
-
+    
+    
     schnitzcells = addDlFluoToSchnitzcells(Prefixes{e}); 
       
     checkSchnitzcellsCompiledParticlesConsistency(...
