@@ -30,13 +30,7 @@ end
 
 %we're going to restrict the range of the fits specifically for each
 %enhancer. nan values means no restriction
-xrange = nan(length(enhancers), 2);
-xrange(1,:)  = [1000, 2250];  %1Dg
-if strcmpi(expmnt, 'affinities')
-    xrange(2, :) = [500, 1750]; %upper limit for %1DgS
-    xrange(3, 1) = 500; %lower limit for 1DgW
-    xrange(4, 2) = 1500; %upper limit for %1DgAW
-end
+xrange = getXRange(enhancers, expmnt);
 
 nSets = length(enhancers);
 xo = {};
@@ -120,7 +114,9 @@ options.updatesigma = 1;
 if displayFigures
     burnInTime = .25; %let's burn the first 25% of the chain
     chain = chain(round(burnInTime*nSimu):nSimu, :);
-    s2chain = s2chain(round(.25*nSimu):nSimu, :);
+    if ~isempty(s2chain)
+        s2chain = s2chain(round(.25*nSimu):nSimu, :);
+    end
     
     chainfig = figure(); clf
     mcmcplot(chain,[],results,'chainpanel')
@@ -210,6 +206,48 @@ if displayFigures
         xlabel('position (bp)')
     end
 end
+
+
+covfig = figure;
+til3 = tiledlayout('flow')
+
+nexttile;
+imagesc(sqrt(abs(results.cov)))
+colorbar;
+set(gca,'ColorScale','log')
+ylabel('parameter 1')
+xlabel('parameter 2')
+title('Covariance matrix of the parameters');
+
+nexttile;
+imagesc(sqrt(abs(results.qcov)))
+colorbar;
+set(gca,'ColorScale','log')
+ylabel('parameter 1')
+xlabel('parameter 2')
+title('qcov matrix of the proposal parameters');
+
+nexttile;
+imagesc(sqrt(abs(results.qcov2)))
+colorbar;
+set(gca,'ColorScale','log')
+ylabel('parameter 1')
+xlabel('parameter 2')
+title('qcov2 covariance matrix of the proposal parameters');
+
+
+nexttile;
+imagesc(results.R)
+colorbar;
+set(gca,'ColorScale','log')
+ylabel('parameter 1')
+xlabel('parameter 2')
+title('R covariance matrix of the proposal parameters');
+
+colormap(viridis);
+
+
+
 end
 %%
 function ss = funss_hill(params, data)

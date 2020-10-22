@@ -29,13 +29,9 @@ end
 
 %we're going to restrict the range of the fits specifically for each
 %enhancer. nan values means no restriction
-xrange = nan(length(enhancers), 2);
-xrange(1,:)  = [1000, 2250];  %1Dg
-if strcmpi(expmnt, 'affinities')
-    xrange(2, :) = [500, 1750]; %upper limit for %1DgS
-    xrange(3, 1) = 500; %lower limit for 1DgW
-    xrange(4, 2) = 1500; %upper limit for %1DgAW
-end
+%we're going to restrict the range of the fits specifically for each
+%enhancer. nan values means no restriction
+xrange = getXRange(enhancers, expmnt);
 
 nSets = length(enhancers);
 xo = {};
@@ -56,13 +52,22 @@ for k = 1:nSets
     end
     [xs{k}, ys{k}]= processVecs(xo{k}, yo{k}, xrange(k, :));
     dsid = [dsid; k*ones(size(xs{k}))];
+    
+    if isnan(xrange(k, 1))
+        xrange(k, 1) = min(xo{k});
+    end
+    if isnan(xrange(k, 2))
+        xrange(k, 2) = max(xo{k});
+    end
+    
     T = [T; xs{k}];
     Y = [Y; ys{k}];
 end
 
-if displayFigures
-    gscatter(T,Y,dsid)
-end
+% if displayFigures
+%     scatterFig = figure;
+%     gscatter(T,Y,dsid)
+% end
 
 
 
