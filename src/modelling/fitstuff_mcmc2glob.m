@@ -6,6 +6,7 @@ load([resultsFolder, filesep, 'dorsalResultsDatabase.mat'], 'dorsalResultsDataba
 expmnt = "affinities";
 md = "simpleweak";
 metric = "fraction";
+noOff = false;
 nSimu = 1E4;
 minKD = 200;
 maxKD = 1E4;
@@ -23,8 +24,8 @@ if strcmpi(expmnt, 'affinities')
     enhancers =  {'1Dg11', '1DgS2', '1DgW', '1DgAW3', '1DgSVW2', '1DgVVW3', '1DgVW'};
     scores = [6.23, 5.81, 5.39, 5.13, 4.80, 4.73, 4.29]';
 elseif strcmpi(expmnt, 'phases')
-    enhancers = {'1Dg-8D', '1Dg-5','1Dg11'};
-    scores = [-8, -5, 0]';
+    enhancers = {'1Dg11', '1Dg-5', '1Dg-8D'};
+    scores = [0, -5, -8]';
 end
 
 
@@ -80,6 +81,12 @@ x_max = max(T);
 
 [k0, mse] = globfit2('expmnt',expmnt, 'metric', metric, 'md', md, 'maxKD', maxKD, 'displayFigures', displayFigures);
 
+if noOff && metric=="fluo"
+    p0 = p0(1:end-1);
+    lb = lb(1:end-1);
+    ub = ub(1:end-1);
+    k0 = k0(1:end-1);
+end
 
 %
 params = cell(1, 3);
@@ -93,14 +100,24 @@ if expmnt == "affinities" && md=="simpleweak" && metric=="fraction"
     model.ssfun = @funss_simpleweakfraction;
     mdl = @(x, p)subfun_simplebinding_weak_fraction_std2(x, p);
 elseif expmnt == "affinities" && md=="simpleweak" && metric=="fluo"
-    model.ssfun = @funss_simpleweakfluo;
-    mdl = @(x, p)subfun_simplebinding_weak_fluo_std2(x, p);
+    if noOff
+        model.ssfun = @funss_simpleweakfluo_nooff;
+        mdl = @(x, p)subfun_simplebinding_weak_fluo_std2_nooff(x, p);
+    else
+        model.ssfun = @funss_simpleweakfluo;
+        mdl = @(x, p)subfun_simplebinding_weak_fluo_std2(x, p);
+    end
 elseif expmnt == "phases" && md=="simpleweak" && metric=="fraction"
     model.ssfun = @funss_simpleweakfraction_phases;
     mdl = @(x, p)subfun_simplebinding_weak_fraction_std2_phases(x, p);
 elseif expmnt == "phases" && md=="simpleweak" && metric=="fluo"
-    model.ssfun = @funss_simpleweakfluo_phases;
-    mdl = @(x, p)subfun_simplebinding_weak_fluo_std2_phases(x, p);
+    if noOff
+        model.ssfun = @funss_simpleweakfluo_phases_nooff;
+        mdl = @(x, p)subfun_simplebinding_weak_fluo_std2_phases_nooff(x, p);
+    else
+        model.ssfun = @funss_simpleweakfluo_phases;
+        mdl = @(x, p)subfun_simplebinding_weak_fluo_std2_phases(x, p);
+    end
 end
 
 model.sigma2 = mse;
@@ -149,7 +166,7 @@ if displayFigures
         dsid2 = [dsid2; k*ones(length(xx), 1)];
     end
     
-
+    
     out = mcmcpred(results,chain,[],repmat(xx, nSets, 1), mdl);
     % mcmcpredplot(out);
     nn = (size(out.predlims{1}{1},1) + 1) / 2;
@@ -178,7 +195,7 @@ if displayFigures
         plot(xx,yy,'-k')
         xlim([0,3500])
         
-        if expmnt == "affinities" 
+        if expmnt == "affinities"
             vartheta = 'KD = ';
             consttheta = ' \omega'' = ';
         elseif expmnt == "phases"
@@ -186,20 +203,22 @@ if displayFigures
             vartheta = ' \omega'' = ';
         end
         
+        titleCell = {enhancers{i}, [vartheta, num2str(round2(km(i+1))), ' \pm ', num2str(round2(ks(i+1)))],...
+                [consttheta, num2str(round2(km(1))), ' \pm ', num2str(round2(ks(1)))]};
+            
         if metric=="fraction"
-            title({enhancers{i}, [vartheta, num2str(round2(km(i+1))), ' \pm ', num2str(round2(ks(i+1)))],...
-                [consttheta, num2str(round2(km(1))), ' \pm ', num2str(round2(ks(1)))]})
             ylim([0, 1])
         elseif metric=="fluo"
-            title({enhancers{i}, [vartheta, num2str(round2(km(i+1))), ' \pm ', num2str(round2(ks(i+1)))],...
-                [consttheta, num2str(round2(km(1))), ' \pm ', num2str(round2(ks(1)))],...
-                [' amp = ', num2str(round2(km(end-1))), ' \pm ', num2str(round2(ks(end-1)))],...
-                [' off = ', num2str(round2(km(end))), ' \pm ', num2str(round2(ks(end)))],...
-                })
+            titleCell = [titleCell,...
+                [' amp = ', num2str(round2(km(end-1))), ' \pm ', num2str(round2(ks(end-1)))] ];
+                if ~noOff
+                    titleCell = [titleCell, [' off = ', num2str(round2(km(end))), ' \pm ', num2str(round2(ks(end)))] ];
+                end
             ylim([0, y_max])
         end
+        title(titleCell);
     end
-    title(til, 'global fit with mcmc')
+%     title(til, 'global fit with mcmc')
     
     figure;
     errorbar(scores, km(2:nSets+1), ks(2:nSets+1));
@@ -224,7 +243,7 @@ colorbar;
 ylabel('parameter 1')
 xlabel('parameter 2')
 title('Covariance matrix of the parameters');
-% 
+%
 % nexttile;
 % imagesc(sqrt(abs(results.qcov)))
 % colorbar;
@@ -232,7 +251,7 @@ title('Covariance matrix of the parameters');
 % % ylabel('parameter 1')
 % xlabel('parameter 2')
 % title('qcov matrix of the proposal parameters');
-% 
+%
 % nexttile;
 % imagesc(sqrt(abs(results.qcov2)))
 % colorbar;
@@ -240,8 +259,8 @@ title('Covariance matrix of the parameters');
 % ylabel('parameter 1')
 % xlabel('parameter 2')
 % title('qcov2 covariance matrix of the proposal parameters');
-% 
-% 
+%
+%
 % nexttile;
 % imagesc(results.R)
 % colorbar;
@@ -393,6 +412,43 @@ yfit = amp.*(((x./KD(dsid)).*omegaDP)./(1+x./KD(dsid)+(x./KD(dsid)).*omegaDP)) +
 
 end
 
+function ss = funss_simpleweakfluo_nooff(params, data)
+% sum-of-squares
+
+x = data.X(:,1);        % unpack time from X
+dsid = data.X(:,2);     % unpack dataset id from X
+params = params(:)'; %need a row vec
+omegaDP = params(1);
+KD = params(2:max(dsid)+1)';
+amp = params(max(dsid)+2);
+Amodel = amp.*(((x./KD(dsid)).*omegaDP)./(1+x./KD(dsid)+(x./KD(dsid)).*omegaDP));
+ss = sum((data.ydata(:,2)-Amodel).^2);
+end
+
+
+function yfit = subfun_simplebinding_weak_fluo_std2_nooff(x, params)
+%simplebinding in the weak promoter limit.
+
+X = [];
+n = 1;
+X(1, :) = [x(1), 1];
+for k = 2:length(x)
+    if x(k) < x(k-1)
+        n = n + 1;
+    end
+    X(k, 1) = x(k);
+    X(k, 2) = n;
+end
+
+dsid = X(:,2);     % unpack dataset id from X
+params = params(:)'; %need a row vec
+omegaDP = params(1);
+KD = params(2:max(dsid)+1)';
+amp = params(max(dsid)+2);
+yfit = amp.*(((x./KD(dsid)).*omegaDP)./(1+x./KD(dsid)+(x./KD(dsid)).*omegaDP));
+
+end
+
 
 
 
@@ -476,5 +532,43 @@ omegaDP = params(2:max(dsid)+1)';
 amp = params(max(dsid)+2);
 offset = params(max(dsid)+3);
 yfit = amp.*(((x./KD).*omegaDP(dsid))./(1+x./KD+(x./KD).*omegaDP(dsid))) + offset;
+
+end
+
+
+function ss = funss_simpleweakfluo_phases_nooff(params, data)
+% sum-of-squares
+
+x = data.X(:,1);        % unpack time from X
+dsid = data.X(:,2);     % unpack dataset id from X
+params = params(:)'; %need a row vec
+KD = params(1);
+omegaDP = params(2:max(dsid)+1)';
+amp = params(max(dsid)+2);
+Amodel = amp.*(((x./KD).*omegaDP(dsid))./(1+x./KD+(x./KD).*omegaDP(dsid)));
+ss = sum((data.ydata(:,2)-Amodel).^2);
+end
+
+
+function yfit = subfun_simplebinding_weak_fluo_std2_phases_nooff(x, params)
+%simplebinding in the weak promoter limit.
+
+X = [];
+n = 1;
+X(1, :) = [x(1), 1];
+for k = 2:length(x)
+    if x(k) < x(k-1)
+        n = n + 1;
+    end
+    X(k, 1) = x(k);
+    X(k, 2) = n;
+end
+
+dsid = X(:,2);     % unpack dataset id from X
+params = params(:)'; %need a row vec
+KD = params(1);
+omegaDP = params(2:max(dsid)+1)';
+amp = params(max(dsid)+2);
+yfit = amp.*(((x./KD).*omegaDP(dsid))./(1+x./KD+(x./KD).*omegaDP(dsid)));
 
 end

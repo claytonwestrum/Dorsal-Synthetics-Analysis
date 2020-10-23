@@ -22,7 +22,8 @@ end
 if strcmpi(expmnt, 'affinities')
     enhancers =  {'1Dg11', '1DgS2', '1DgW', '1DgAW3', '1DgSVW2', '1DgVVW3', '1DgVW'};
 elseif strcmpi(expmnt, 'phases')
-    enhancers = {'1Dg-8D', '1Dg-5','1Dg11'};
+    enhancers = {'1Dg11', '1Dg-5', '1Dg-8D'};
+    scores = [0, -5, -8]';
 end
 
 
