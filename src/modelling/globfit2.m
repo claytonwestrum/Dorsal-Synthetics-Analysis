@@ -1,4 +1,4 @@
-function [b, mse] = globfit2(varargin)
+function [b, MSE] = globfit2(varargin)
 % Set up data so that Y is a function of T with a specific functional form,
 % but there are multiple groups and one parameter varies across groups.
 
@@ -61,6 +61,8 @@ for k = 1:nSets
         xrange(k, 2) = max(xo{k});
     end
     
+    assert(~isempty(xs{k}));
+
     T = [T; xs{k}];
     Y = [Y; ys{k}];
 end
@@ -101,16 +103,26 @@ elseif expmnt == "phases" && md=="simpleweak" && metric=="fluo"
     mdl = @(p, x) subfun_simplebinding_weak_fluo_std_phases(p, x);
 end
 
-[b,~,res,~,~,~, Jacobian] = lsqcurvefit(mdlo,p0,X,Y, lb, ub, optimoptions);
+[b,~,res,~,~,~, J] = lsqcurvefit(mdlo,p0,X,Y, lb, ub, optimoptions);
 
 
-CI = nlparci(b,res,'jacobian',Jacobian);
-mse = mean(res.^2);
+CI = nlparci(b,res,'jacobian',J);
+MSE = mean(res.^2);
+
+CovB = inv(J'*J).*MSE;
+
+covfig = figure;
+cv = @(x, y) sqrt(abs(x)) ./ sqrt((y'*y));
+imagesc(cv(CovB, b));
+colorbar;
+ylabel('parameter 1')
+xlabel('parameter 2')
+title('Covariance matrix of the parameters');
 
 if displayFigures
     xx = (0:1:max(X(:,1)))';
     xxx = repmat(xx, nSets, 1);
-    [Ypred,delta] = nlpredci(mdl,xxx,b,res,'Jacobian',full(Jacobian));
+    [Ypred,delta] = nlpredci(mdl,xxx,b,res,'Jacobian',full(J));
     yl = Ypred - delta;
     yu = Ypred + delta;
     

@@ -6,10 +6,15 @@ load([resultsFolder, filesep, 'dorsalResultsDatabase.mat'], 'dorsalResultsDataba
 expmnt = "affinities";
 md = "simpleweak";
 metric = "fraction";
+lsq = true;
 noOff = false;
 nSimu = 1E4;
 minKD = 200;
 maxKD = 1E4;
+minw = 1E-2; %1E-2
+maxw = 1E1; %1E2
+minR = 10;
+maxR = 1E3;
 displayFigures = true;
 wb = true;
 %options must be specified as name, value pairs. unpredictable errors will
@@ -20,12 +25,23 @@ for i = 1:2:(numel(varargin)-1)
     end
 end
 
+if expmnt == "phaff"
+    lsq = false;
+    noOff = true;
+end
+
 if strcmpi(expmnt, 'affinities')
     enhancers =  {'1Dg11', '1DgS2', '1DgW', '1DgAW3', '1DgSVW2', '1DgVVW3', '1DgVW'};
     scores = [6.23, 5.81, 5.39, 5.13, 4.80, 4.73, 4.29]';
 elseif strcmpi(expmnt, 'phases')
     enhancers = {'1Dg11', '1Dg-5', '1Dg-8D'};
     scores = [0, -5, -8]';
+elseif expmnt=="phaff"
+    enhancers_aff =  {'1Dg11', '1DgS2', '1DgW', '1DgAW3', '1DgSVW2', '1DgVVW3', '1DgVW'};
+    scores = [6.23, 5.81, 5.39, 5.13, 4.80, 4.73, 4.29]';
+    enhancers_ph = {'1Dg11', '1Dg-5', '1Dg-8D'};
+    positions = [0, -5, -8]';
+    enhancers =  {'1Dg11', '1DgS2', '1DgW', '1DgAW3', '1DgSVW2', '1DgVVW3', '1DgVW', '1Dg-5', '1Dg-8D'};
 end
 
 
@@ -60,6 +76,8 @@ for k = 1:nSets
         xrange(k, 2) = max(xo{k});
     end
     
+    assert(~isempty(xs{k}));
+    
     T = [T; xs{k}];
     Y = [Y; ys{k}];
 end
@@ -76,10 +94,16 @@ data.X =  [T dsid];
 y_max = nanmax(Y(:));
 x_max = max(T);
 
-[p0, lb, ub] = getInits(expmnt, md, metric ,x_max, y_max, nSets, 'minKD', minKD, 'maxKD', maxKD);
+[p0, lb, ub] = getInits(expmnt, md, metric ,x_max, y_max, nSets,...
+    'minKD', minKD, 'maxKD', maxKD, 'minw', minw, 'maxw', maxw, 'minR', minR, 'maxR', maxR);
 
 
-[k0, mse] = globfit2('expmnt',expmnt, 'metric', metric, 'md', md, 'maxKD', maxKD, 'displayFigures', displayFigures);
+if lsq
+    [k0, mse] = globfit2('expmnt',expmnt, 'metric', metric, 'md', md, 'maxKD', maxKD, 'displayFigures', displayFigures);
+else
+    k0 = p0;
+end
+
 
 if noOff && metric=="fluo"
     p0 = p0(1:end-1);
@@ -112,26 +136,39 @@ elseif expmnt == "phases" && md=="simpleweak" && metric=="fraction"
     mdl = @(x, p)subfun_simplebinding_weak_fraction_std2_phases(x, p);
 elseif expmnt == "phases" && md=="simpleweak" && metric=="fluo"
     if noOff
-        model.ssfun = @funss_simpleweakfluo_phases_nooff;
+        model.ssfun = @funss_simpleweakfluo_phases_nooff; %#ok<*UNRCH>
         mdl = @(x, p)subfun_simplebinding_weak_fluo_std2_phases_nooff(x, p);
     else
         model.ssfun = @funss_simpleweakfluo_phases;
         mdl = @(x, p)subfun_simplebinding_weak_fluo_std2_phases(x, p);
     end
+elseif expmnt == "phaff" && md=="simpleweak" && metric=="fraction"
+    model.ssfun = @funss_simpleweakfraction_phaff;
+    mdl = @(x, p)subfun_simplebinding_weak_fraction_std2_phaff(x, p);
+elseif expmnt == "phaff" && md=="simpleweak" && metric=="fluo"
+    model.ssfun = @funss_simpleweakfluo_phaff_nooff;
+    mdl = @(x, p)subfun_simplebinding_weak_fluo_std2_phaff_nooff(x, p);
 end
 
-model.sigma2 = mse;
+if lsq
+    model.sigma2 = mse;
+end
 
 options.drscale = 5;
 options.waitbar = wb;
 options.nsimu = nSimu;
 options.updatesigma = 1;
-[results,chain,s2chain] = mcmcrun(model,data,params,options);
 
-% results = [];
-% [results,chain,s2chain,sschain]=mcmcrun(model,data,params,options,results);
-% [results,chain,s2chain,sschain]=mcmcrun(model,data,params,options,results);
-% [results,chain,s2chain,sschain]=mcmcrun(model,data,params,options,results);
+rng(1,'twister'); %set the rng seed so we get the same results every run of this function
+
+if lsq
+    [results,chain,s2chain] = mcmcrun(model,data,params,options);
+else
+    results = [];
+    [results,chain,s2chain,sschain]=mcmcrun(model,data,params,options,results);
+    [results,chain,s2chain,sschain]=mcmcrun(model,data,params,options,results);
+    [results,chain,s2chain,sschain]=mcmcrun(model,data,params,options,results);
+end
 
 if displayFigures
     burnInTime = .25; %let's burn the first 25% of the chain
@@ -203,75 +240,80 @@ if displayFigures
             vartheta = ' \omega'' = ';
         end
         
-        titleCell = {enhancers{i}, [vartheta, num2str(round2(km(i+1))), ' \pm ', num2str(round2(ks(i+1)))],...
+        
+        if expmnt == "phaff"
+            naff = 7;
+            nph = 3;
+            if i <= naff
+                
+                titleCell = {enhancers{i}, [' \omega'' = ', num2str(round2(km(1))), ' \pm ', num2str(round2(ks(1)))],...
+                    [ 'KD = ', num2str(round2(km(nph+i))), ' \pm ', num2str(round2(ks(nph+i)))]};
+            elseif i > naff
+                titleCell = {enhancers{i}, [' \omega'' = ', num2str(round2(km(i - (naff-1) ))), ' \pm ', num2str(round2(ks(i - (naff-1))))],...
+                    [ 'KD = ', num2str(round2(km(nph+1))), ' \pm ', num2str(round2(ks(nph+1)))]};
+            end
+        else
+            titleCell = {enhancers{i}, [vartheta, num2str(round2(km(i+1))), ' \pm ', num2str(round2(ks(i+1)))],...
                 [consttheta, num2str(round2(km(1))), ' \pm ', num2str(round2(ks(1)))]};
-            
+        end
+        
         if metric=="fraction"
             ylim([0, 1])
         elseif metric=="fluo"
             titleCell = [titleCell,...
-                [' amp = ', num2str(round2(km(end-1))), ' \pm ', num2str(round2(ks(end-1)))] ];
-                if ~noOff
-                    titleCell = [titleCell, [' off = ', num2str(round2(km(end))), ' \pm ', num2str(round2(ks(end)))] ];
-                end
+                [' amp = ', num2str(round2(km(nSets + 1))), ' \pm ', num2str(round2(ks(nSets + 1)))] ];
+            if ~noOff
+                titleCell = [titleCell, [' off = ', num2str(round2(km(end))), ' \pm ', num2str(round2(ks(end)))] ];
+            end
             ylim([0, y_max])
         end
         title(titleCell);
     end
-%     title(til, 'global fit with mcmc')
+    %     title(til, 'global fit with mcmc')
+    
     
     figure;
-    errorbar(scores, km(2:nSets+1), ks(2:nSets+1));
-    if expmnt == "affinities"
+    if expmnt == "phaff"
+        
+        tilo = tiledlayout('flow');
+        nexttile;
+        errorbar(scores, km(nph+1:nph+naff), ks(nph+1:nph+naff));
         ylabel('KD (au)')
         xlabel('affinity (Patser score)')
-    elseif expmnt == "phases"
+        
+        nexttile;
+        errorbar(positions, km(1:nph), ks(1:nph));
         ylabel('w'' (au)')
         xlabel('position (bp)')
+        xlim([-10, 2])
+    else
+        
+        errorbar(scores, km(2:nSets+1), ks(2:nSets+1));
+        if expmnt == "affinities"
+            ylabel('KD (au)')
+            xlabel('affinity (Patser score)')
+        elseif expmnt == "phases"
+            ylabel('w'' (au)')
+            xlabel('position (bp)')
+            xlim([-10, 2])
+        end
+        
     end
+    
+    
+    covfig = figure;
+    cv = @(x, y) sqrt(abs(x)) ./ sqrt((y'*y));
+    imagesc(cv(results.cov, results.mean));
+    colorbar;     
+    ylabel('parameter 1')
+    xlabel('parameter 2')
+    title('Covariance matrix of the parameters');
+   
+    colormap(viridis);
+    
+    
+    
 end
-
-
-covfig = figure;
-til3 = tiledlayout('flow');
-
-cv = @(x, y) sqrt(abs(x)) ./ sqrt((y'*y));
-nexttile;
-imagesc(cv(results.cov, results.mean));
-colorbar;
-% set(gca,'ColorScale','log')
-ylabel('parameter 1')
-xlabel('parameter 2')
-title('Covariance matrix of the parameters');
-%
-% nexttile;
-% imagesc(sqrt(abs(results.qcov)))
-% colorbar;
-% set(gca,'ColorScale','log')
-% % ylabel('parameter 1')
-% xlabel('parameter 2')
-% title('qcov matrix of the proposal parameters');
-%
-% nexttile;
-% imagesc(sqrt(abs(results.qcov2)))
-% colorbar;
-% set(gca,'ColorScale','log')
-% ylabel('parameter 1')
-% xlabel('parameter 2')
-% title('qcov2 covariance matrix of the proposal parameters');
-%
-%
-% nexttile;
-% imagesc(results.R)
-% colorbar;
-% set(gca,'ColorScale','log')
-% ylabel('parameter 1')
-% xlabel('parameter 2')
-% title('R covariance matrix of the proposal parameters');
-
-colormap(viridis);
-
-
 
 end
 %%
@@ -309,7 +351,7 @@ KD = params(2:nSets+1)';
 omegaDP = params(nSets + 2);
 offset = params(nSets + 3);
 
-Amodel = amplitude.*(((x./KD(dsid)).*omegaDP)./(1+x./KD(dsid)+(x./KD(dsid)).*omegaDP))+offset;
+Amodel = amplitude.*(((x./KD(dsid)).*omegaDP)./(1+ (x./KD(dsid))+ ((x./KD(dsid)).*omegaDP)))+offset;
 
 ss = sum((data.ydata(:,2)-Amodel).^2);
 end
@@ -329,7 +371,7 @@ KD = params(2:nSets+1)';
 omegaDP = params(nSets + 2);
 offset = params(nSets + 3);
 
-yfit = amplitude.*(((x./KD(dsid)).*omegaDP)./(1+x./KD(dsid)+(x./KD(dsid)).*omegaDP))+offset;
+yfit = amplitude.*(((x./KD(dsid)).*omegaDP)./(1+ (x./KD(dsid))+((x./KD(dsid)).*omegaDP)))+offset;
 
 end
 
@@ -344,7 +386,7 @@ nSets = max(dsid);
 params = params(:)'; %need a row vec
 omegaDP = params(1);
 KD = params(2:nSets+1)';
-Amodel = (((x./KD(dsid)).*omegaDP)./(1+x./KD(dsid)+(x./KD(dsid)).*omegaDP));
+Amodel = (((x./KD(dsid)).*omegaDP)./(1+ (x./KD(dsid)) + ((x./KD(dsid)).*omegaDP)));
 ss = sum((data.ydata(:,2)-Amodel).^2);
 end
 
@@ -366,7 +408,7 @@ dsid = X(:,2);     % unpack dataset id from X
 params = params(:)'; %need a row vec
 omegaDP = params(1);
 KD = params(2:max(dsid)+1)';
-yfit = (((x./KD(dsid)).*omegaDP)./(1+x./KD(dsid)+(x./KD(dsid)).*omegaDP));
+yfit = (((x./KD(dsid)).*omegaDP)./(1+ (x./KD(dsid))+ ((x./KD(dsid)).*omegaDP)));
 
 end
 
@@ -383,7 +425,7 @@ omegaDP = params(1);
 KD = params(2:max(dsid)+1)';
 amp = params(max(dsid)+2);
 offset = params(max(dsid)+3);
-Amodel = amp.*(((x./KD(dsid)).*omegaDP)./(1+x./KD(dsid)+(x./KD(dsid)).*omegaDP)) + offset;
+Amodel = amp.*(((x./KD(dsid)).*omegaDP)./(1+ (x./KD(dsid))+ ((x./KD(dsid)).*omegaDP))) + offset;
 ss = sum((data.ydata(:,2)-Amodel).^2);
 end
 
@@ -408,7 +450,7 @@ omegaDP = params(1);
 KD = params(2:max(dsid)+1)';
 amp = params(max(dsid)+2);
 offset = params(max(dsid)+3);
-yfit = amp.*(((x./KD(dsid)).*omegaDP)./(1+x./KD(dsid)+(x./KD(dsid)).*omegaDP)) + offset;
+yfit = amp.*(((x./KD(dsid)).*omegaDP)./(1+ (x./KD(dsid))+ ((x./KD(dsid)).*omegaDP))) + offset;
 
 end
 
@@ -421,7 +463,7 @@ params = params(:)'; %need a row vec
 omegaDP = params(1);
 KD = params(2:max(dsid)+1)';
 amp = params(max(dsid)+2);
-Amodel = amp.*(((x./KD(dsid)).*omegaDP)./(1+x./KD(dsid)+(x./KD(dsid)).*omegaDP));
+Amodel = amp.*(((x./KD(dsid)).*omegaDP)./(1+ (x./KD(dsid)) + ((x./KD(dsid)).*omegaDP)));
 ss = sum((data.ydata(:,2)-Amodel).^2);
 end
 
@@ -445,9 +487,10 @@ params = params(:)'; %need a row vec
 omegaDP = params(1);
 KD = params(2:max(dsid)+1)';
 amp = params(max(dsid)+2);
-yfit = amp.*(((x./KD(dsid)).*omegaDP)./(1+x./KD(dsid)+(x./KD(dsid)).*omegaDP));
+yfit = amp.*(((x./KD(dsid)).*omegaDP)./(1+ (x./KD(dsid))+ ((x./KD(dsid)).*omegaDP)));
 
 end
+
 
 
 
@@ -467,7 +510,7 @@ nSets = max(dsid);
 params = params(:)'; %need a row vec
 KD = params(1);
 omegaDP = params(2:nSets+1)';
-Amodel = (((x./KD).*omegaDP(dsid))./(1+x./KD+(x./KD).*omegaDP(dsid)));
+Amodel = (((x./KD).*omegaDP(dsid))./(1+ (x./KD)+ ((x./KD).*omegaDP(dsid))));
 ss = sum((data.ydata(:,2)-Amodel).^2);
 end
 
@@ -489,7 +532,7 @@ dsid = X(:,2);     % unpack dataset id from X
 params = params(:)'; %need a row vec
 KD = params(1);
 omegaDP = params(2:max(dsid)+1)';
-yfit = (((x./KD).*omegaDP(dsid))./(1+x./KD+(x./KD).*omegaDP(dsid)));
+yfit = (((x./KD).*omegaDP(dsid))./(1+ (x./KD)+((x./KD).*omegaDP(dsid))));
 
 end
 
@@ -506,7 +549,7 @@ KD = params(1);
 omegaDP = params(2:max(dsid)+1)';
 amp = params(max(dsid)+2);
 offset = params(max(dsid)+3);
-Amodel = amp.*(((x./KD).*omegaDP(dsid))./(1+x./KD+(x./KD).*omegaDP(dsid))) + offset;
+Amodel = amp.*(((x./KD).*omegaDP(dsid))./(1+ (x./KD)+ ((x./KD).*omegaDP(dsid)))) + offset;
 ss = sum((data.ydata(:,2)-Amodel).^2);
 end
 
@@ -531,7 +574,7 @@ KD = params(1);
 omegaDP = params(2:max(dsid)+1)';
 amp = params(max(dsid)+2);
 offset = params(max(dsid)+3);
-yfit = amp.*(((x./KD).*omegaDP(dsid))./(1+x./KD+(x./KD).*omegaDP(dsid))) + offset;
+yfit = amp.*(((x./KD).*omegaDP(dsid))./(1+ (x./KD)+ ((x./KD).*omegaDP(dsid)))) + offset;
 
 end
 
@@ -545,7 +588,7 @@ params = params(:)'; %need a row vec
 KD = params(1);
 omegaDP = params(2:max(dsid)+1)';
 amp = params(max(dsid)+2);
-Amodel = amp.*(((x./KD).*omegaDP(dsid))./(1+x./KD+(x./KD).*omegaDP(dsid)));
+Amodel = amp.*(((x./KD).*omegaDP(dsid))./(1+(x./KD)+ ((x./KD).*omegaDP(dsid))));
 ss = sum((data.ydata(:,2)-Amodel).^2);
 end
 
@@ -569,6 +612,91 @@ params = params(:)'; %need a row vec
 KD = params(1);
 omegaDP = params(2:max(dsid)+1)';
 amp = params(max(dsid)+2);
-yfit = amp.*(((x./KD).*omegaDP(dsid))./(1+x./KD+(x./KD).*omegaDP(dsid)));
+yfit = amp.*(((x./KD).*omegaDP(dsid))./(1+ (x./KD)+ ((x./KD).*omegaDP(dsid))));
+
+end
+
+
+function ss = funss_simpleweakfluo_phaff_nooff(params, data)
+% sum-of-squares
+nph = 3;
+naff = 7;
+
+x = data.X(:,1);        % unpack time from X
+dsid = data.X(:,2);     % unpack dataset id from X
+params = params(:)'; %need a row vec
+omegaDP = [params(1)*ones(1, naff), params(2:nph)]';
+KD = [params(1:naff), params(1)*ones(1, nph-1)]';
+amp = params(nph+naff+1);
+Amodel = amp.*(((x./KD(dsid)).*omegaDP(dsid))./(1+ (x./KD(dsid))+ ((x./KD(dsid)).*omegaDP(dsid))));
+ss = sum( (data.ydata(:,2)-Amodel).^2 );
+end
+
+
+function yfit = subfun_simplebinding_weak_fluo_std2_phaff_nooff(x, params)
+%simplebinding in the weak promoter limit.
+%note that this could probably be cleaner if dsid was a 2d matrix and
+%params were referenced in that matrix like data set 1 has kd1, omega1,
+%etc.
+
+X = [];
+n = 1;
+X(1, :) = [x(1), 1];
+for k = 2:length(x)
+    if x(k) < x(k-1)
+        n = n + 1;
+    end
+    X(k, 1) = x(k);
+    X(k, 2) = n;
+end
+
+nph = 3;
+naff = 7;
+dsid = X(:,2);     % unpack dataset id from X
+params = params(:)'; %need a row vec
+omegaDP = [params(1)*ones(1, naff), params(2:nph)]';
+KD = [params(1:naff), params(1)*ones(1, nph-1)]';
+amp = params(nph+naff+1);
+yfit = amp.*(((x./KD(dsid)).*omegaDP(dsid))./(1+ (x./KD(dsid))+ ((x./KD(dsid)).*omegaDP(dsid))));
+
+end
+
+
+function ss = funss_simpleweakfraction_phaff(params, data)
+% sum-of-squares
+
+nph = 3;
+naff = 7;
+x = data.X(:,1);        % unpack time from X
+dsid = data.X(:,2);     % unpack dataset id from X
+params = params(:)'; %need a row vec
+omegaDP = [params(1)*ones(1, naff), params(2:nph)]';
+KD = [params(1:naff), params(1)*ones(1, nph-1)]';
+Amodel = (((x./KD(dsid)).*omegaDP(dsid))./(1+ (x./KD(dsid))+ ((x./KD(dsid)).*omegaDP(dsid))));
+ss = sum((data.ydata(:,2)-Amodel).^2);
+end
+
+function yfit = subfun_simplebinding_weak_fraction_std2_phaff(x, params)
+%simplebinding in the weak promoter limit.
+
+nph = 3;
+naff = 7;
+
+X = [];
+n = 1;
+X(1, :) = [x(1), 1];
+for k = 2:length(x)
+    if x(k) < x(k-1)
+        n = n + 1;
+    end
+    X(k, 1) = x(k);
+    X(k, 2) = n;
+end
+
+dsid = X(:,2);     % unpack dataset id from X
+params = params(:)'; %need a row vec
+omegaDP = [params(1)*ones(1, naff), params(2:nph)]';
+KD = [params(1:naff), params(1)*ones(1, nph-1)]';
+yfit = (((x./KD(dsid)).*omegaDP(dsid))./(1+ (x./KD(dsid))+ ((x./KD(dsid)).*omegaDP(dsid))));
 
 end

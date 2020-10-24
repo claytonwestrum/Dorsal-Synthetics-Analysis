@@ -5,6 +5,11 @@ maxKD = 1E4;
 minw = 1E-2; %1E-2
 maxw = 1E1; %1E2
 omega0 = 1;
+minR = 10;
+maxR = 1E3;
+
+nph = 3;
+naff = 7;
 
 %options must be specified as name, value pairs. unpredictable errors will
 %occur, otherwise.
@@ -17,14 +22,14 @@ end
 
 if expmnt == "affinities" && md=="simpleweak" && metric=="fraction" 
     %simplebindingweak_fraction- omegaDP kd1..kdn
-    p0 = [1; [x_max/2;x_max;maxKD.*ones(1, nSets-2)']];
+    p0 = [omega0; [x_max/2;x_max;maxKD.*ones(1, nSets-2)']];
     lb = [minw; minKD.*ones(1, nSets)'];
     ub = [maxw; maxKD*ones(1, nSets)'];
 elseif expmnt == "affinities" && md=="simpleweak" && metric=="fluo"
     %simplebindingweak_fluo- omegaDP kd1..kdn amp off
-    p0 = [1; [x_max/2;x_max;maxKD.*ones(1, nSets-2)']; 500; 10];
-    lb = [minw; minKD.*ones(1, nSets)'; 10; 10];
-    ub = [maxw; maxKD*ones(1, nSets)'; 1E3; 1E3];
+    p0 = [omega0; [x_max/2;x_max;maxKD.*ones(1, nSets-2)']; 500; 10];
+    lb = [minw; minKD.*ones(1, nSets)'; minR; 10];
+    ub = [maxw; maxKD*ones(1, nSets)'; maxR; 1E3];
 elseif expmnt == "phases" && md=="simpleweak" && metric=="fraction"
      %simplebindingweak_fraction- omegaDP1...omegaDPn kd
     p0 = [x_max/2; omega0*ones(1, nSets)'];
@@ -33,8 +38,20 @@ elseif expmnt == "phases" && md=="simpleweak" && metric=="fraction"
 elseif expmnt == "phases" && md=="simpleweak" && metric=="fluo"
      %simplebindingweak_fraction- omegaDP1...omegaDPn kd amp off
     p0 = [x_max/2; omega0*ones(1, nSets)'; 500; 10];
-    lb = [minKD; minw*ones(1, nSets)'; 10; 10];
-    ub = [maxKD; maxw*ones(1, nSets)'; 1E3; 1E3];
+    lb = [minKD; minw*ones(1, nSets)'; minR; 10];
+    ub = [maxKD; maxw*ones(1, nSets)'; maxR; 1E3];
+elseif expmnt == "phaff" && md=="simpleweak" && metric=="fraction"
+    %enhancers- 1dg...1dgvw 1dg-5, 1dg-8
+    % w1, w2, w3, kd1, kd2...kd7    
+    p0 = [omega0*ones(1, nph)'; [x_max/2;x_max;maxKD.*ones(1, naff-2)']];
+    lb =  [minw*ones(1, nph)'; minKD.*ones(1, naff)'];
+    ub = [maxw*ones(1, nph)'; maxKD*ones(1, naff)'];
+elseif expmnt == "phaff" && md=="simpleweak" && metric=="fluo"
+    %enhancers- 1dg...1dgvw 1dg-5, 1dg-8
+    % w1, w2, w3, kd1, kd2...kd7, amp, off
+    p0 = [omega0*ones(1, nph)'; [x_max/2;x_max;maxKD.*ones(1, naff-2)']; 500; 10];
+    lb = [minw*ones(1, nph)'; minKD.*ones(1, naff)'; minR; 10];
+    ub = [maxw*ones(1, nph)'; maxKD*ones(1, naff)'; maxR; 1E3];
 end
 
 
