@@ -4,8 +4,8 @@ function [results,chain,s2chain]  = fitstuff_mcmc2glob(varargin)
 load([resultsFolder, filesep, 'dorsalResultsDatabase.mat'], 'dorsalResultsDatabase')
 
 expmnt = "affinities"; %affinities, phases or phaff
-md = "simpleweak"; %only this
-metric = "fraction"; %fraction or fluo
+md = "simpleweak"; %simpleweak, tfdriven, artifact, fourstate,...
+metric = "fraction"; %fraction, fluo
 lsq = true;
 noOff = false;
 nSimu = 1E4;
@@ -17,6 +17,9 @@ minR = 10;
 maxR = 1E3;
 displayFigures = true;
 wb = true;
+fixedKD = NaN; %if this value isn't nan, this value will determine the fixed KD parameter and KD won't be fitted
+fixedOffset = NaN; %see above
+
 %options must be specified as name, value pairs. unpredictable errors will
 %occur, otherwise.
 for i = 1:2:(numel(varargin)-1)
@@ -115,10 +118,29 @@ end
 
 % put the initial parameters and bounds in a form that the mcmc function
 % accepts
-params = cell(1, 3);
+params = cell(1, length(k0));
+pri_mu = NaN; %default prior gaussian mean
+pri_sig = Inf; %default prior gaussian variance
+localflag = 0; %is this local to this dataset or shared amongst batches?
+
+
 for i = 1:length(k0)
-    params{1, i} = {['k', num2str(i)],k0(i), lb(i), ub(i)};
+    targetflag = 1; %is this optimized or not? if this is set to 0, the parameter stays at a constant value equal to the initial value.
+    
+    if ~isnan(fixedKD) && i==1 && expmnt == "phases"
+        k0(i) = fixedKD;
+        targetflag = 0;
+    end
+    
+    if ~isnan(fixedOffset) && i==length(k0) && metric == "fluo"
+        k0(i) = fixedOffset;
+        targetflag = 0;
+    end
+    
+    params{1, i} = {['k', num2str(i)],k0(i), lb(i), ub(i), pri_mu, pri_sig, targetflag, localflag};
+    
 end
+
 
 model = struct;
 
@@ -145,9 +167,9 @@ else
     %run as conditions for the next. this is an alternative when common least
     %squares gives results too poor to initialize with
     results = [];
-    [results,chain,s2chain,sschain]=mcmcrun(model,data,params,options,results);
-    [results,chain,s2chain,sschain]=mcmcrun(model,data,params,options,results);
-    [results,chain,s2chain,sschain]=mcmcrun(model,data,params,options,results);
+    [results,~,~,~]=mcmcrun(model,data,params,options,results);
+    [results,~,~,~]=mcmcrun(model,data,params,options,results);
+    [results,chain,s2chain,~]=mcmcrun(model,data,params,options,results);
 end
 
 if displayFigures
@@ -215,42 +237,43 @@ if displayFigures
         plot(xx,yy,'-k')
         xlim([0,3500])
         
-        if expmnt == "affinities"
-            vartheta = 'KD = ';
-            consttheta = ' \omega'' = ';
-        elseif expmnt == "phases"
-            consttheta = 'KD = ';
-            vartheta = ' \omega'' = ';
-        end
-        
-        
-        if expmnt == "phaff"
-            naff = 7;
-            nph = 3;
-            if i <= naff
-                
-                titleCell = {enhancers{i}, [' \omega'' = ', num2str(round2(km(1))), ' \pm ', num2str(round2(ks(1)))],...
-                    [ 'KD = ', num2str(round2(km(nph+i))), ' \pm ', num2str(round2(ks(nph+i)))]};
-            elseif i > naff
-                titleCell = {enhancers{i}, [' \omega'' = ', num2str(round2(km(i - (naff-1) ))), ' \pm ', num2str(round2(ks(i - (naff-1))))],...
-                    [ 'KD = ', num2str(round2(km(nph+1))), ' \pm ', num2str(round2(ks(nph+1)))]};
+        try
+            if expmnt == "affinities"
+                vartheta = 'KD = ';
+                consttheta = ' \omega'' = ';
+            elseif expmnt == "phases"
+                consttheta = 'KD = ';
+                vartheta = ' \omega'' = ';
             end
-        else
-            titleCell = {enhancers{i}, [vartheta, num2str(round2(km(i+1))), ' \pm ', num2str(round2(ks(i+1)))],...
-                [consttheta, num2str(round2(km(1))), ' \pm ', num2str(round2(ks(1)))]};
-        end
-        
-        if metric=="fraction"
-            ylim([0, 1])
-        elseif metric=="fluo"
-            titleCell = [titleCell,...
-                [' amp = ', num2str(round2(km(nSets + 1))), ' \pm ', num2str(round2(ks(nSets + 1)))] ];
-            if ~noOff
-                titleCell = [titleCell, [' off = ', num2str(round2(km(end))), ' \pm ', num2str(round2(ks(end)))] ];
+            
+            
+            if expmnt == "phaff"
+                naff = 7;
+                nph = 3;
+                if i <= naff
+                    titleCell = {enhancers{i}, [' \omega'' = ', num2str(round2(km(1))), ' \pm ', num2str(round2(ks(1)))],...
+                        [ 'KD = ', num2str(round2(km(nph+i))), ' \pm ', num2str(round2(ks(nph+i)))]};
+                elseif i > naff
+                    titleCell = {enhancers{i}, [' \omega'' = ', num2str(round2(km(i - (naff-1) ))), ' \pm ', num2str(round2(ks(i - (naff-1))))],...
+                        [ 'KD = ', num2str(round2(km(nph+1))), ' \pm ', num2str(round2(ks(nph+1)))]};
+                end
+            else
+                titleCell = {enhancers{i}, [vartheta, num2str(round2(km(i+1))), ' \pm ', num2str(round2(ks(i+1)))],...
+                    [consttheta, num2str(round2(km(1))), ' \pm ', num2str(round2(ks(1)))]};
             end
-            ylim([0, y_max])
+            
+            if metric=="fraction"
+                ylim([0, 1])
+            elseif metric=="fluo"
+                titleCell = [titleCell,...
+                    [' amp = ', num2str(round2(km(nSets + 1))), ' \pm ', num2str(round2(ks(nSets + 1)))] ];
+                if ~noOff
+                    titleCell = [titleCell, [' off = ', num2str(round2(km(end))), ' \pm ', num2str(round2(ks(end)))] ];
+                end
+                ylim([0, y_max])
+            end
+            title(titleCell);
         end
-        title(titleCell);
     end
     
     
@@ -284,16 +307,23 @@ if displayFigures
     
     
     covfig = figure;
-    cv = @(x, y) sqrt(abs(x)) ./ sqrt((y'*y));
+    tiledlayout('flow')
+    nexttile;
+    cv = @(x, y) sqrt(abs(x)) ./ sqrt((y'*y)); %sketch normalized covariance i made up
     imagesc(cv(results.cov, results.mean));
     colorbar;
     ylabel('parameter 1')
     xlabel('parameter 2')
-    title('Covariance matrix of the parameters');
-    
+    title('Norm. covariance matrix of the parameters');
     colormap(viridis);
-    
-    
+    nexttile;
+    rho = @(x, y) x ./ (y'*y); %pearson's correlation coefficient
+    imagesc(rho(results.cov, sqrt(diag(results.cov))));
+    colorbar;
+    ylabel('parameter 1')
+    xlabel('parameter 2')
+    title('Correlation coefficient');
+    colormap(viridis);
     
 end
 

@@ -26,26 +26,6 @@ end
 end
 
 
-
-function yfit = subfun_simple_weak(params,X)
-
-%simplebinding in the weak promoter limit.
-
-x = X(:,1);        % unpack time from X
-dsid = X(:,2);     % unpack dataset id from X
-nSets = max(dsid);
-
-params = params(:)'; %need a row vec
-
-amplitude = params(1);
-KD = params(2:nSets+1)';
-omegaDP = params(nSets + 2);
-offset = params(nSets + 3);
-
-yfit = amplitude.*(((x./KD(dsid)).*omegaDP)./(1+ (x./KD(dsid))+((x./KD(dsid)).*omegaDP)))+offset;
-
-end
-
 %% simple weak fraction
 
 
@@ -264,5 +244,51 @@ params = params(:)'; %need a row vec
 omegaDP = [params(1)*ones(1, naff), params(2:nph)]';
 KD = [params(1:naff), params(1)*ones(1, nph-1)]';
 yfit = (((x./KD(dsid)).*omegaDP(dsid))./(1+ (x./KD(dsid))+ ((x./KD(dsid)).*omegaDP(dsid))));
+
+end
+
+
+function yfit = subfun_simplebinding_weak_fraction_std2_phases_fixKD(x, params)
+%simplebinding in the weak promoter limit.
+
+X = [];
+n = 1;
+X(1, :) = [x(1), 1];
+for k = 2:length(x)
+    if x(k) < x(k-1)
+        n = n + 1;
+    end
+    X(k, 1) = x(k);
+    X(k, 2) = n;
+end
+
+dsid = X(:,2);     % unpack dataset id from X
+params = params(:)'; %need a row vec
+KD = params(1);
+omegaDP = params(2:max(dsid)+1)';
+yfit = (((x./KD).*omegaDP(dsid))./(1+ (x./KD)+((x./KD).*omegaDP(dsid))));
+
+end
+
+function yfit = subfun_simplebinding_weak_fluo_std2_phases_nooff_fixKD(x, params)
+%simplebinding in the weak promoter limit.
+
+X = [];
+n = 1;
+X(1, :) = [x(1), 1];
+for k = 2:length(x)
+    if x(k) < x(k-1)
+        n = n + 1;
+    end
+    X(k, 1) = x(k);
+    X(k, 2) = n;
+end
+
+dsid = X(:,2);     % unpack dataset id from X
+params = params(:)'; %need a row vec
+KD = params(1);
+omegaDP = params(2:max(dsid)+1)';
+amp = params(max(dsid)+2);
+yfit = amp.*(((x./KD).*omegaDP(dsid))./(1+ (x./KD)+ ((x./KD).*omegaDP(dsid))));
 
 end
