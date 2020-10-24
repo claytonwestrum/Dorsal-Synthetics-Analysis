@@ -3,9 +3,9 @@ function [results,chain,s2chain]  = fitstuff_mcmc2glob(varargin)
 [~, resultsFolder] = getDorsalFolders;
 load([resultsFolder, filesep, 'dorsalResultsDatabase.mat'], 'dorsalResultsDatabase')
 
-expmnt = "affinities";
-md = "simpleweak";
-metric = "fraction";
+expmnt = "affinities"; %affinities, phases or phaff
+md = "simpleweak"; %only this
+metric = "fraction"; %fraction or fluo
 lsq = true;
 noOff = false;
 nSimu = 1E4;
@@ -87,7 +87,6 @@ data.dsid = dsid;
 data.X =  [T dsid];
 
 %%
-% Refine the first guess for the parameters with fminseacrh and calculate residual variance as an estimate of the model error variance.
 
 
 %rate, kd, hill, y offset
@@ -99,6 +98,7 @@ x_max = max(T);
 
 
 if lsq
+    % Refine the first guess for the parameters with fminseacrh and calculate residual variance as an estimate of the model error variance.
     [k0, mse] = globfit2('expmnt',expmnt, 'metric', metric, 'md', md, 'maxKD', maxKD, 'displayFigures', displayFigures);
 else
     k0 = p0;
@@ -106,13 +106,15 @@ end
 
 
 if noOff && metric=="fluo"
+    %ignore the offset in the initial parameters and bounds
     p0 = p0(1:end-1);
     lb = lb(1:end-1);
     ub = ub(1:end-1);
     k0 = k0(1:end-1);
 end
 
-%
+% put the initial parameters and bounds in a form that the mcmc function
+% accepts
 params = cell(1, 3);
 for i = 1:length(k0)
     params{1, i} = {['k', num2str(i)],k0(i), lb(i), ub(i)};
@@ -120,50 +122,28 @@ end
 
 model = struct;
 
-if expmnt == "affinities" && md=="simpleweak" && metric=="fraction"
-    model.ssfun = @funss_simpleweakfraction;
-    mdl = @(x, p)subfun_simplebinding_weak_fraction_std2(x, p);
-elseif expmnt == "affinities" && md=="simpleweak" && metric=="fluo"
-    if noOff
-        model.ssfun = @funss_simpleweakfluo_nooff;
-        mdl = @(x, p)subfun_simplebinding_weak_fluo_std2_nooff(x, p);
-    else
-        model.ssfun = @funss_simpleweakfluo;
-        mdl = @(x, p)subfun_simplebinding_weak_fluo_std2(x, p);
-    end
-elseif expmnt == "phases" && md=="simpleweak" && metric=="fraction"
-    model.ssfun = @funss_simpleweakfraction_phases;
-    mdl = @(x, p)subfun_simplebinding_weak_fraction_std2_phases(x, p);
-elseif expmnt == "phases" && md=="simpleweak" && metric=="fluo"
-    if noOff
-        model.ssfun = @funss_simpleweakfluo_phases_nooff; %#ok<*UNRCH>
-        mdl = @(x, p)subfun_simplebinding_weak_fluo_std2_phases_nooff(x, p);
-    else
-        model.ssfun = @funss_simpleweakfluo_phases;
-        mdl = @(x, p)subfun_simplebinding_weak_fluo_std2_phases(x, p);
-    end
-elseif expmnt == "phaff" && md=="simpleweak" && metric=="fraction"
-    model.ssfun = @funss_simpleweakfraction_phaff;
-    mdl = @(x, p)subfun_simplebinding_weak_fraction_std2_phaff(x, p);
-elseif expmnt == "phaff" && md=="simpleweak" && metric=="fluo"
-    model.ssfun = @funss_simpleweakfluo_phaff_nooff;
-    mdl = @(x, p)subfun_simplebinding_weak_fluo_std2_phaff_nooff(x, p);
-end
+%%ssfun computes residuals for the mcmc function. mdl is used for computing
+%%function values when plotting
+mdl = getFitFuns(expmnt, md, metric, noOff);
+model.ssfun = @(params, data) sum( (data.ydata(:,2)-mdl(data.X(:,1), params)).^2 );
 
 if lsq
     model.sigma2 = mse;
 end
 
-options.drscale = 5;
-options.waitbar = wb;
-options.nsimu = nSimu;
-options.updatesigma = 1;
+options.drscale = 5; % a high value (5) is important for multimodal parameter spaces
+options.waitbar = wb; %the waitbar is rate limiting sometimes
+options.nsimu = nSimu; %should be between 1E3 and 1E6
+options.updatesigma = 1; %honestly don't know what this does
 
 rng(1,'twister'); %set the rng seed so we get the same results every run of this function
 
 if lsq
     [results,chain,s2chain] = mcmcrun(model,data,params,options);
 else
+    %we're gonna run this three times and use the initial results of one
+    %run as conditions for the next. this is an alternative when common least
+    %squares gives results too poor to initialize with
     results = [];
     [results,chain,s2chain,sschain]=mcmcrun(model,data,params,options,results);
     [results,chain,s2chain,sschain]=mcmcrun(model,data,params,options,results);
@@ -171,7 +151,8 @@ else
 end
 
 if displayFigures
-    burnInTime = .25; %let's burn the first 25% of the chain
+    
+    burnInTime = .25; %let's burn the first 25% of the chain just in case
     chain = chain(round(burnInTime*nSimu):nSimu, :);
     if ~isempty(s2chain)
         s2chain = s2chain(round(.25*nSimu):nSimu, :);
@@ -181,6 +162,7 @@ if displayFigures
     mcmcplot(chain,[],results,'chainpanel')
     
     % Function chainstats lists some statistics, including the estimated Monte Carlo error of the estimates.
+    %geweke is a measure of whether things converged between 0 and 1.
     chainstats(chain,results)
     
     
@@ -204,7 +186,9 @@ if displayFigures
     end
     
     
+    %get the prediction intervals for the parameters and function vals
     out = mcmcpred(results,chain,[],repmat(xx, nSets, 1), mdl);
+    
     % mcmcpredplot(out);
     nn = (size(out.predlims{1}{1},1) + 1) / 2;
     plimi = out.predlims{1};
@@ -220,7 +204,6 @@ if displayFigures
     
     for i = 1:nSets
         
-        %     yy = yfit2(X2(:, 2)==i);
         yy = yf(X2(:, 2)==i);
         yyl = yl(X2(:, 2)==i);
         yyu = yu(X2(:, 2)==i);
@@ -269,7 +252,6 @@ if displayFigures
         end
         title(titleCell);
     end
-    %     title(til, 'global fit with mcmc')
     
     
     figure;
@@ -304,11 +286,11 @@ if displayFigures
     covfig = figure;
     cv = @(x, y) sqrt(abs(x)) ./ sqrt((y'*y));
     imagesc(cv(results.cov, results.mean));
-    colorbar;     
+    colorbar;
     ylabel('parameter 1')
     xlabel('parameter 2')
     title('Covariance matrix of the parameters');
-   
+    
     colormap(viridis);
     
     
@@ -317,386 +299,3 @@ end
 
 end
 %%
-function ss = funss_hill(params, data)
-% sum-of-squares
-
-
-x = data.X(:,1);        % unpack time from X
-dsid = data.X(:,2);     % unpack dataset id from X
-nSets = max(dsid);
-params = params(:)'; %need a row vec
-
-amplitude = params(1);
-KD = params(2:nSets+1)';
-n = params(nSets + 2);
-offset = params(nSets + 3);
-
-Amodel = amplitude.*(((x./KD(dsid)).^n)./(1+((x)./KD(dsid)).^n))+offset;
-
-ss = sum(( data.ydata(:,2)-Amodel).^2);
-end
-
-%%
-function ss = funss_simpleweak(params, data)
-% sum-of-squares
-
-x = data.X(:,1);        % unpack time from X
-dsid = data.X(:,2);     % unpack dataset id from X
-nSets = max(dsid);
-
-params = params(:)'; %need a row vec
-
-amplitude = params(1);
-KD = params(2:nSets+1)';
-omegaDP = params(nSets + 2);
-offset = params(nSets + 3);
-
-Amodel = amplitude.*(((x./KD(dsid)).*omegaDP)./(1+ (x./KD(dsid))+ ((x./KD(dsid)).*omegaDP)))+offset;
-
-ss = sum((data.ydata(:,2)-Amodel).^2);
-end
-
-function yfit = subfun_simple_weak(params,X)
-
-%simplebinding in the weak promoter limit.
-
-x = X(:,1);        % unpack time from X
-dsid = X(:,2);     % unpack dataset id from X
-nSets = max(dsid);
-
-params = params(:)'; %need a row vec
-
-amplitude = params(1);
-KD = params(2:nSets+1)';
-omegaDP = params(nSets + 2);
-offset = params(nSets + 3);
-
-yfit = amplitude.*(((x./KD(dsid)).*omegaDP)./(1+ (x./KD(dsid))+((x./KD(dsid)).*omegaDP)))+offset;
-
-end
-
-%% simple weak fraction
-
-function ss = funss_simpleweakfraction(params, data)
-% sum-of-squares
-
-x = data.X(:,1);        % unpack time from X
-dsid = data.X(:,2);     % unpack dataset id from X
-nSets = max(dsid);
-params = params(:)'; %need a row vec
-omegaDP = params(1);
-KD = params(2:nSets+1)';
-Amodel = (((x./KD(dsid)).*omegaDP)./(1+ (x./KD(dsid)) + ((x./KD(dsid)).*omegaDP)));
-ss = sum((data.ydata(:,2)-Amodel).^2);
-end
-
-function yfit = subfun_simplebinding_weak_fraction_std2(x, params)
-%simplebinding in the weak promoter limit.
-
-X = [];
-n = 1;
-X(1, :) = [x(1), 1];
-for k = 2:length(x)
-    if x(k) < x(k-1)
-        n = n + 1;
-    end
-    X(k, 1) = x(k);
-    X(k, 2) = n;
-end
-
-dsid = X(:,2);     % unpack dataset id from X
-params = params(:)'; %need a row vec
-omegaDP = params(1);
-KD = params(2:max(dsid)+1)';
-yfit = (((x./KD(dsid)).*omegaDP)./(1+ (x./KD(dsid))+ ((x./KD(dsid)).*omegaDP)));
-
-end
-
-%% simple weak fluo
-
-
-function ss = funss_simpleweakfluo(params, data)
-% sum-of-squares
-
-x = data.X(:,1);        % unpack time from X
-dsid = data.X(:,2);     % unpack dataset id from X
-params = params(:)'; %need a row vec
-omegaDP = params(1);
-KD = params(2:max(dsid)+1)';
-amp = params(max(dsid)+2);
-offset = params(max(dsid)+3);
-Amodel = amp.*(((x./KD(dsid)).*omegaDP)./(1+ (x./KD(dsid))+ ((x./KD(dsid)).*omegaDP))) + offset;
-ss = sum((data.ydata(:,2)-Amodel).^2);
-end
-
-
-function yfit = subfun_simplebinding_weak_fluo_std2(x, params)
-%simplebinding in the weak promoter limit.
-
-X = [];
-n = 1;
-X(1, :) = [x(1), 1];
-for k = 2:length(x)
-    if x(k) < x(k-1)
-        n = n + 1;
-    end
-    X(k, 1) = x(k);
-    X(k, 2) = n;
-end
-
-dsid = X(:,2);     % unpack dataset id from X
-params = params(:)'; %need a row vec
-omegaDP = params(1);
-KD = params(2:max(dsid)+1)';
-amp = params(max(dsid)+2);
-offset = params(max(dsid)+3);
-yfit = amp.*(((x./KD(dsid)).*omegaDP)./(1+ (x./KD(dsid))+ ((x./KD(dsid)).*omegaDP))) + offset;
-
-end
-
-function ss = funss_simpleweakfluo_nooff(params, data)
-% sum-of-squares
-
-x = data.X(:,1);        % unpack time from X
-dsid = data.X(:,2);     % unpack dataset id from X
-params = params(:)'; %need a row vec
-omegaDP = params(1);
-KD = params(2:max(dsid)+1)';
-amp = params(max(dsid)+2);
-Amodel = amp.*(((x./KD(dsid)).*omegaDP)./(1+ (x./KD(dsid)) + ((x./KD(dsid)).*omegaDP)));
-ss = sum((data.ydata(:,2)-Amodel).^2);
-end
-
-
-function yfit = subfun_simplebinding_weak_fluo_std2_nooff(x, params)
-%simplebinding in the weak promoter limit.
-
-X = [];
-n = 1;
-X(1, :) = [x(1), 1];
-for k = 2:length(x)
-    if x(k) < x(k-1)
-        n = n + 1;
-    end
-    X(k, 1) = x(k);
-    X(k, 2) = n;
-end
-
-dsid = X(:,2);     % unpack dataset id from X
-params = params(:)'; %need a row vec
-omegaDP = params(1);
-KD = params(2:max(dsid)+1)';
-amp = params(max(dsid)+2);
-yfit = amp.*(((x./KD(dsid)).*omegaDP)./(1+ (x./KD(dsid))+ ((x./KD(dsid)).*omegaDP)));
-
-end
-
-
-
-
-
-
-
-
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%phases
-
-function ss = funss_simpleweakfraction_phases(params, data)
-% sum-of-squares
-
-x = data.X(:,1);        % unpack time from X
-dsid = data.X(:,2);     % unpack dataset id from X
-nSets = max(dsid);
-params = params(:)'; %need a row vec
-KD = params(1);
-omegaDP = params(2:nSets+1)';
-Amodel = (((x./KD).*omegaDP(dsid))./(1+ (x./KD)+ ((x./KD).*omegaDP(dsid))));
-ss = sum((data.ydata(:,2)-Amodel).^2);
-end
-
-function yfit = subfun_simplebinding_weak_fraction_std2_phases(x, params)
-%simplebinding in the weak promoter limit.
-
-X = [];
-n = 1;
-X(1, :) = [x(1), 1];
-for k = 2:length(x)
-    if x(k) < x(k-1)
-        n = n + 1;
-    end
-    X(k, 1) = x(k);
-    X(k, 2) = n;
-end
-
-dsid = X(:,2);     % unpack dataset id from X
-params = params(:)'; %need a row vec
-KD = params(1);
-omegaDP = params(2:max(dsid)+1)';
-yfit = (((x./KD).*omegaDP(dsid))./(1+ (x./KD)+((x./KD).*omegaDP(dsid))));
-
-end
-
-%% simple weak fluo
-
-
-function ss = funss_simpleweakfluo_phases(params, data)
-% sum-of-squares
-
-x = data.X(:,1);        % unpack time from X
-dsid = data.X(:,2);     % unpack dataset id from X
-params = params(:)'; %need a row vec
-KD = params(1);
-omegaDP = params(2:max(dsid)+1)';
-amp = params(max(dsid)+2);
-offset = params(max(dsid)+3);
-Amodel = amp.*(((x./KD).*omegaDP(dsid))./(1+ (x./KD)+ ((x./KD).*omegaDP(dsid)))) + offset;
-ss = sum((data.ydata(:,2)-Amodel).^2);
-end
-
-
-function yfit = subfun_simplebinding_weak_fluo_std2_phases(x, params)
-%simplebinding in the weak promoter limit.
-
-X = [];
-n = 1;
-X(1, :) = [x(1), 1];
-for k = 2:length(x)
-    if x(k) < x(k-1)
-        n = n + 1;
-    end
-    X(k, 1) = x(k);
-    X(k, 2) = n;
-end
-
-dsid = X(:,2);     % unpack dataset id from X
-params = params(:)'; %need a row vec
-KD = params(1);
-omegaDP = params(2:max(dsid)+1)';
-amp = params(max(dsid)+2);
-offset = params(max(dsid)+3);
-yfit = amp.*(((x./KD).*omegaDP(dsid))./(1+ (x./KD)+ ((x./KD).*omegaDP(dsid)))) + offset;
-
-end
-
-
-function ss = funss_simpleweakfluo_phases_nooff(params, data)
-% sum-of-squares
-
-x = data.X(:,1);        % unpack time from X
-dsid = data.X(:,2);     % unpack dataset id from X
-params = params(:)'; %need a row vec
-KD = params(1);
-omegaDP = params(2:max(dsid)+1)';
-amp = params(max(dsid)+2);
-Amodel = amp.*(((x./KD).*omegaDP(dsid))./(1+(x./KD)+ ((x./KD).*omegaDP(dsid))));
-ss = sum((data.ydata(:,2)-Amodel).^2);
-end
-
-
-function yfit = subfun_simplebinding_weak_fluo_std2_phases_nooff(x, params)
-%simplebinding in the weak promoter limit.
-
-X = [];
-n = 1;
-X(1, :) = [x(1), 1];
-for k = 2:length(x)
-    if x(k) < x(k-1)
-        n = n + 1;
-    end
-    X(k, 1) = x(k);
-    X(k, 2) = n;
-end
-
-dsid = X(:,2);     % unpack dataset id from X
-params = params(:)'; %need a row vec
-KD = params(1);
-omegaDP = params(2:max(dsid)+1)';
-amp = params(max(dsid)+2);
-yfit = amp.*(((x./KD).*omegaDP(dsid))./(1+ (x./KD)+ ((x./KD).*omegaDP(dsid))));
-
-end
-
-
-function ss = funss_simpleweakfluo_phaff_nooff(params, data)
-% sum-of-squares
-nph = 3;
-naff = 7;
-
-x = data.X(:,1);        % unpack time from X
-dsid = data.X(:,2);     % unpack dataset id from X
-params = params(:)'; %need a row vec
-omegaDP = [params(1)*ones(1, naff), params(2:nph)]';
-KD = [params(1:naff), params(1)*ones(1, nph-1)]';
-amp = params(nph+naff+1);
-Amodel = amp.*(((x./KD(dsid)).*omegaDP(dsid))./(1+ (x./KD(dsid))+ ((x./KD(dsid)).*omegaDP(dsid))));
-ss = sum( (data.ydata(:,2)-Amodel).^2 );
-end
-
-
-function yfit = subfun_simplebinding_weak_fluo_std2_phaff_nooff(x, params)
-%simplebinding in the weak promoter limit.
-%note that this could probably be cleaner if dsid was a 2d matrix and
-%params were referenced in that matrix like data set 1 has kd1, omega1,
-%etc.
-
-X = [];
-n = 1;
-X(1, :) = [x(1), 1];
-for k = 2:length(x)
-    if x(k) < x(k-1)
-        n = n + 1;
-    end
-    X(k, 1) = x(k);
-    X(k, 2) = n;
-end
-
-nph = 3;
-naff = 7;
-dsid = X(:,2);     % unpack dataset id from X
-params = params(:)'; %need a row vec
-omegaDP = [params(1)*ones(1, naff), params(2:nph)]';
-KD = [params(1:naff), params(1)*ones(1, nph-1)]';
-amp = params(nph+naff+1);
-yfit = amp.*(((x./KD(dsid)).*omegaDP(dsid))./(1+ (x./KD(dsid))+ ((x./KD(dsid)).*omegaDP(dsid))));
-
-end
-
-
-function ss = funss_simpleweakfraction_phaff(params, data)
-% sum-of-squares
-
-nph = 3;
-naff = 7;
-x = data.X(:,1);        % unpack time from X
-dsid = data.X(:,2);     % unpack dataset id from X
-params = params(:)'; %need a row vec
-omegaDP = [params(1)*ones(1, naff), params(2:nph)]';
-KD = [params(1:naff), params(1)*ones(1, nph-1)]';
-Amodel = (((x./KD(dsid)).*omegaDP(dsid))./(1+ (x./KD(dsid))+ ((x./KD(dsid)).*omegaDP(dsid))));
-ss = sum((data.ydata(:,2)-Amodel).^2);
-end
-
-function yfit = subfun_simplebinding_weak_fraction_std2_phaff(x, params)
-%simplebinding in the weak promoter limit.
-
-nph = 3;
-naff = 7;
-
-X = [];
-n = 1;
-X(1, :) = [x(1), 1];
-for k = 2:length(x)
-    if x(k) < x(k-1)
-        n = n + 1;
-    end
-    X(k, 1) = x(k);
-    X(k, 2) = n;
-end
-
-dsid = X(:,2);     % unpack dataset id from X
-params = params(:)'; %need a row vec
-omegaDP = [params(1)*ones(1, naff), params(2:nph)]';
-KD = [params(1:naff), params(1)*ones(1, nph-1)]';
-yfit = (((x./KD(dsid)).*omegaDP(dsid))./(1+ (x./KD(dsid))+ ((x./KD(dsid)).*omegaDP(dsid))));
-
-end
