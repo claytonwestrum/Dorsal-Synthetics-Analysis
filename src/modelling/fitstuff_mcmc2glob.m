@@ -6,7 +6,7 @@ load([resultsFolder, filesep, 'dorsalResultsDatabase.mat'], 'dorsalResultsDataba
 expmnt = "affinities"; %affinities, phases or phaff
 md = "simpleweak"; %simpleweak, tfdriven, artifact, fourstate,...
 metric = "fraction"; %fraction, fluo
-lsq = true;
+lsq = false;
 noOff = false;
 nSimu = 1E4;
 minKD = 200;
@@ -18,7 +18,12 @@ maxR = 1E3;
 displayFigures = true;
 wb = true;
 fixedKD = NaN; %if this value isn't nan, this value will determine the fixed KD parameter and KD won't be fitted
-fixedOffset = NaN; %see above
+fixedOffset = NaN;
+fixedR = NaN;
+fixedw = NaN;
+enhancerSubset = {};
+scoreSubset = [];
+positionSubset = [];
 
 %options must be specified as name, value pairs. unpredictable errors will
 %occur, otherwise.
@@ -33,18 +38,24 @@ if expmnt == "phaff"
     noOff = true;
 end
 
+enhancers_1dg = {'1Dg11'};
+enhancers_aff =  {'1DgS2', '1DgW', '1DgAW3', '1DgSVW2', '1DgVVW3', '1DgVW'};
+enhancers_ph = {'1Dg-5', '1Dg-8D'};
+scores = [6.23, 5.81, 5.39, 5.13, 4.80, 4.73, 4.29]';
+positions = [0, -5, -8]';
+
 if strcmpi(expmnt, 'affinities')
-    enhancers =  {'1Dg11', '1DgS2', '1DgW', '1DgAW3', '1DgSVW2', '1DgVVW3', '1DgVW'};
-    scores = [6.23, 5.81, 5.39, 5.13, 4.80, 4.73, 4.29]';
+    enhancers = [enhancers_1dg, enhancers_aff];
 elseif strcmpi(expmnt, 'phases')
-    enhancers = {'1Dg11', '1Dg-5', '1Dg-8D'};
-    scores = [0, -5, -8]';
+    enhancers = [enhancers_1dg, enhancers_ph];
 elseif expmnt=="phaff"
-    enhancers_aff =  {'1Dg11', '1DgS2', '1DgW', '1DgAW3', '1DgSVW2', '1DgVVW3', '1DgVW'};
-    scores = [6.23, 5.81, 5.39, 5.13, 4.80, 4.73, 4.29]';
-    enhancers_ph = {'1Dg11', '1Dg-5', '1Dg-8D'};
-    positions = [0, -5, -8]';
-    enhancers =  {'1Dg11', '1DgS2', '1DgW', '1DgAW3', '1DgSVW2', '1DgVVW3', '1DgVW', '1Dg-5', '1Dg-8D'};
+    enhancers = [enhancers_1dg, enhancers_aff, enhancers_ph];
+end
+
+if ~isempty(enhancerSubset)
+    enhancers = enhancerSubset;
+    scores= scoreSubset;
+    positions = positionSubset;
 end
 
 
@@ -96,8 +107,8 @@ data.X =  [T dsid];
 y_max = nanmax(Y(:));
 x_max = max(T);
 
-[p0, lb, ub] = getInits(expmnt, md, metric ,x_max, y_max, nSets,...
-    'minKD', minKD, 'maxKD', maxKD, 'minw', minw, 'maxw', maxw, 'minR', minR, 'maxR', maxR);
+[p0, lb, ub, names] = getInits(expmnt, md, metric ,x_max, y_max, nSets,...
+    'minKD', minKD, 'maxKD', maxKD, 'minw', minw, 'maxw', maxw, 'minR', minR, 'maxR', maxR, 'subset', ~isempty(enhancerSubset));
 
 
 if lsq
@@ -114,6 +125,7 @@ if noOff && metric=="fluo"
     lb = lb(1:end-1);
     ub = ub(1:end-1);
     k0 = k0(1:end-1);
+    names = names(1:end-1);
 end
 
 % put the initial parameters and bounds in a form that the mcmc function
@@ -125,19 +137,30 @@ localflag = 0; %is this local to this dataset or shared amongst batches?
 
 
 for i = 1:length(k0)
+    
     targetflag = 1; %is this optimized or not? if this is set to 0, the parameter stays at a constant value equal to the initial value.
     
-    if ~isnan(fixedKD) && i==1 && expmnt == "phases"
+    if ~isnan(fixedKD) && contains(names(i), "KD")
         k0(i) = fixedKD;
         targetflag = 0;
     end
     
-    if ~isnan(fixedOffset) && i==length(k0) && metric == "fluo"
+    if ~isnan(fixedOffset) && contains(names(i), "off")
         k0(i) = fixedOffset;
         targetflag = 0;
     end
     
-    params{1, i} = {['k', num2str(i)],k0(i), lb(i), ub(i), pri_mu, pri_sig, targetflag, localflag};
+    if ~isnan(fixedR) && contains(names(i), "R")
+        k0(i) = fixedR;
+        targetflag = 0;
+    end
+    
+    if ~isnan(fixedw) && contains(names(i), "w")
+        k0(i) = fixedw;
+        targetflag = 0;
+    end
+    
+    params{1, i} = {names(i),k0(i), lb(i), ub(i), pri_mu, pri_sig, targetflag, localflag};
     
 end
 
@@ -206,6 +229,8 @@ if displayFigures
     for k = 1:nSets
         dsid2 = [dsid2; k*ones(length(xx), 1)];
     end
+    X2 = [repmat(xx, nSets, 1), dsid2];
+    
     
     
     %get the prediction intervals for the parameters and function vals
@@ -219,7 +244,13 @@ if displayFigures
     
     km = mean(chain);
     ks = std(chain);
-    X2 = [repmat(xx, nSets, 1), dsid2];
+    
+    %add back the parameters not included in the fits so we can add the
+    %values to titles, etc.
+    missingInd = find(~ismember(names, string(results.names)));
+    km(missingInd) = p0(missingInd);
+    ks(missingInd) = NaN;
+    
     
     
     yf = plimi{1}(nn,:);
@@ -237,72 +268,66 @@ if displayFigures
         plot(xx,yy,'-k')
         xlim([0,3500])
         
-        try
-            if expmnt == "affinities"
-                vartheta = 'KD = ';
-                consttheta = ' \omega'' = ';
-            elseif expmnt == "phases"
-                consttheta = 'KD = ';
-                vartheta = ' \omega'' = ';
-            end
-            
-            
-            if expmnt == "phaff"
-                naff = 7;
-                nph = 3;
-                if i <= naff
-                    titleCell = {enhancers{i}, [' \omega'' = ', num2str(round2(km(1))), ' \pm ', num2str(round2(ks(1)))],...
-                        [ 'KD = ', num2str(round2(km(nph+i))), ' \pm ', num2str(round2(ks(nph+i)))]};
-                elseif i > naff
-                    titleCell = {enhancers{i}, [' \omega'' = ', num2str(round2(km(i - (naff-1) ))), ' \pm ', num2str(round2(ks(i - (naff-1))))],...
-                        [ 'KD = ', num2str(round2(km(nph+1))), ' \pm ', num2str(round2(ks(nph+1)))]};
+        if expmnt ~= "phaff"
+            titleCell = enhancers{i};
+            for t = 1:length(names)
+                hasNoDigits = cellfun(@isempty, regexp(names', '\d'));
+                if hasNoDigits(t) || contains(names(t), num2str(i))
+                    titleCell = [ titleCell; join([names(t), ' = ', num2str(round2(km(t))), ' \pm ', num2str(round2(ks(t)))]) ];
                 end
-            else
-                titleCell = {enhancers{i}, [vartheta, num2str(round2(km(i+1))), ' \pm ', num2str(round2(ks(i+1)))],...
-                    [consttheta, num2str(round2(km(1))), ' \pm ', num2str(round2(ks(1)))]};
             end
-            
-            if metric=="fraction"
-                ylim([0, 1])
-            elseif metric=="fluo"
-                titleCell = [titleCell,...
-                    [' amp = ', num2str(round2(km(nSets + 1))), ' \pm ', num2str(round2(ks(nSets + 1)))] ];
-                if ~noOff
-                    titleCell = [titleCell, [' off = ', num2str(round2(km(end))), ' \pm ', num2str(round2(ks(end)))] ];
-                end
-                ylim([0, y_max])
+        elseif expmnt == "phaff"
+            naff = 7;
+            nph = 3;
+            if i <= naff
+                titleCell = {enhancers{i}, [' \omega'' = ', num2str(round2(km(1))), ' \pm ', num2str(round2(ks(1)))],...
+                    [ 'KD = ', num2str(round2(km(nph+i))), ' \pm ', num2str(round2(ks(nph+i)))]};
+            elseif i > naff
+                titleCell = {enhancers{i}, [' \omega'' = ', num2str(round2(km(i - (naff-1) ))), ' \pm ', num2str(round2(ks(i - (naff-1))))],...
+                    [ 'KD = ', num2str(round2(km(nph+1))), ' \pm ', num2str(round2(ks(nph+1)))]};
             end
-            title(titleCell);
         end
+        
+        if metric=="fraction"
+            ylim([0, 1])
+        elseif metric=="fluo"
+            ylim([0, y_max])
+        end
+        title(titleCell);
     end
     
-    
-    figure;
-    if expmnt == "phaff"
-        
-        tilo = tiledlayout('flow');
-        nexttile;
-        errorbar(scores, km(nph+1:nph+naff), ks(nph+1:nph+naff));
-        ylabel('KD (au)')
-        xlabel('affinity (Patser score)')
-        
-        nexttile;
-        errorbar(positions, km(1:nph), ks(1:nph));
-        ylabel('w'' (au)')
-        xlabel('position (bp)')
-        xlim([-10, 2])
-    else
-        
-        errorbar(scores, km(2:nSets+1), ks(2:nSets+1));
-        if expmnt == "affinities"
+%     try
+        figure;
+        if expmnt == "phaff"
+            
+            tilo = tiledlayout('flow');
+            nexttile;
+            errorbar(scores, km(nph+1:nph+naff), ks(nph+1:nph+naff));
             ylabel('KD (au)')
             xlabel('affinity (Patser score)')
-        elseif expmnt == "phases"
+            
+            nexttile;
+            errorbar(positions, km(1:nph), ks(1:nph));
             ylabel('w'' (au)')
             xlabel('position (bp)')
             xlim([-10, 2])
-        end
-        
+        else
+            
+            if expmnt == "affinities"
+                hasKD = contains(names, 'kd', 'IgnoreCase', true);
+                errorbar(scores, km(hasKD), ks(hasKD));
+                ylabel('KD (au)')
+                xlabel('affinity (Patser score)')
+            elseif expmnt == "phases"
+                scores = positions;
+                hasw = contains(names, 'w', 'IgnoreCase', true);
+                errorbar(scores, km(hasw), ks(hasw));
+                ylabel('w'' (au)')
+                xlabel('position (bp)')
+                xlim([-10, 2])
+            end
+            
+%         end
     end
     
     
