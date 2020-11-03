@@ -33,6 +33,11 @@ end
 function yfit = subfun_simplebinding_weak_fraction_std2(x, params)
 %simplebinding in the weak promoter limit.
 
+if isstruct(x)
+    data = x;
+    x = data.X(:, 1);
+end
+
 X = [];
 n = 1;
 X(1, :) = [x(1), 1];

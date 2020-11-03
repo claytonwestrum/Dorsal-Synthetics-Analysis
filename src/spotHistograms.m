@@ -95,7 +95,7 @@ for k = 1:length(b)
 end  
 fluos(fluos <= 0) = [];
 fluos(isnan(fluos)) = [];
- fluos = fluos./max(fluos(:));
+%  fluos = fluos./max(fluos(:));
  if ~isempty(fluos)
     histogram(ax4, fluos, 'Normalization', 'pdf', 'facealpha', .5)
     hold on;
