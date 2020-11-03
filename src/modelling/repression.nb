@@ -1,0 +1,357 @@
+(* Content-type: application/vnd.wolfram.mathematica *)
+
+(*** Wolfram Notebook File ***)
+(* http://www.wolfram.com/nb *)
+
+(* CreatedBy='Mathematica 12.1' *)
+
+(*CacheID: 234*)
+(* Internal cache information:
+NotebookFileLineBreakTest
+NotebookFileLineBreakTest
+NotebookDataPosition[       158,          7]
+NotebookDataLength[     13926,        347]
+NotebookOptionsPosition[     13147,        327]
+NotebookOutlinePosition[     13539,        343]
+CellTagsIndexPosition[     13496,        340]
+WindowFrame->Normal*)
+
+(* Beginning of Notebook Content *)
+Notebook[{
+Cell[BoxData[{
+ RowBox[{
+  RowBox[{
+   RowBox[{"pBound", "[", 
+    RowBox[{"d_", ",", "P_", ",", "Kd_", ",", "\[Omega]_", ",", "G_"}], "]"}],
+    " ", "=", " ", 
+   RowBox[{
+    RowBox[{"(", 
+     RowBox[{"P", " ", "+", " ", 
+      RowBox[{
+       RowBox[{"(", 
+        RowBox[{"d", "/", "Kd"}], ")"}], "*", "P", "*", "\[Omega]"}]}], " ", 
+     ")"}], "/", " ", 
+    RowBox[{"(", 
+     RowBox[{"P", " ", "+", " ", 
+      RowBox[{
+       RowBox[{"(", 
+        RowBox[{"d", "/", "Kd"}], ")"}], "*", "P", "*", "\[Omega]"}], " ", 
+      "+", " ", 
+      RowBox[{"G", "*", "P", "*", 
+       RowBox[{"(", 
+        RowBox[{"d", "/", "Kd"}], ")"}]}], " ", "+", " ", 
+      RowBox[{
+       RowBox[{"(", 
+        RowBox[{"d", "/", "Kd"}], ")"}], "*", "G"}], " ", "+", " ", 
+      RowBox[{"(", 
+       RowBox[{"d", "/", "Kd"}], ")"}], " ", "+", " ", "1"}], ")"}]}]}], 
+  "\[IndentingNewLine]"}], "\[IndentingNewLine]", 
+ RowBox[{"Manipulate", "[", 
+  RowBox[{
+   RowBox[{"Plot", "[", 
+    RowBox[{
+     RowBox[{"pBound", "[", 
+      RowBox[{"d", ",", "P", ",", "Kd", ",", "\[Omega]", ",", "G"}], "]"}], 
+     ",", " ", 
+     RowBox[{"{", 
+      RowBox[{"d", ",", " ", "1", ",", " ", "10000"}], "}"}], ",", " ", 
+     RowBox[{"PlotRange", "\[Rule]", 
+      RowBox[{"{", 
+       RowBox[{
+        RowBox[{"{", 
+         RowBox[{"0", " ", ",", "10000"}], "}"}], ",", " ", 
+        RowBox[{"{", 
+         RowBox[{"0", ",", " ", "1"}], "}"}]}], "}"}]}]}], "]"}], ",", " ", 
+   RowBox[{"{", 
+    RowBox[{"P", ",", " ", ".001", ",", "10"}], "}"}], ",", " ", 
+   RowBox[{"{", 
+    RowBox[{"Kd", ",", " ", "1", ",", " ", "20000"}], "}"}], ",", " ", 
+   RowBox[{"{", 
+    RowBox[{"\[Omega]", ",", " ", "0", ",", " ", "1000"}], "}"}], ",", 
+   RowBox[{"{", 
+    RowBox[{"G", ",", " ", "0", ",", "1000"}], "}"}]}], 
+  "]"}], "\[IndentingNewLine]"}], "Input",
+ CellChangeTimes->{{3.813258247401815*^9, 3.8132582612491913`*^9}, {
+   3.813258297440591*^9, 3.8132584101950293`*^9}, {3.813258501966971*^9, 
+   3.8132585046481647`*^9}, {3.813258803135334*^9, 3.813258827062368*^9}, {
+   3.8132588621944857`*^9, 3.8132589082044373`*^9}, {3.8132589728666058`*^9, 
+   3.813259001282185*^9}, {3.8132590648849573`*^9, 3.8132591433256607`*^9}, {
+   3.8132592938755074`*^9, 3.813259308363639*^9}, {3.8132593437654943`*^9, 
+   3.81325940868007*^9}, {3.8132594514842443`*^9, 3.8132594595674353`*^9}, {
+   3.813259496530328*^9, 3.813259501169754*^9}, {3.813259638089499*^9, 
+   3.813259654781559*^9}, {3.8132597786018467`*^9, 3.8132597978415003`*^9}, {
+   3.813259879748337*^9, 3.813259913480317*^9}, {3.81326010842409*^9, 
+   3.81326011457688*^9}, 3.813260214888008*^9, {3.813260340847044*^9, 
+   3.813260354295594*^9}, {3.8132604300241737`*^9, 3.813260430102713*^9}, {
+   3.813260462091496*^9, 3.813260464288015*^9}, {3.813260526666325*^9, 
+   3.813260539986161*^9}},
+ CellLabel->"In[46]:=",ExpressionUUID->"094532b0-d9ed-43e6-adb9-36d9d6eefbfd"],
+
+Cell[BoxData[
+ RowBox[{
+  TagBox[
+   StyleBox[
+    DynamicModuleBox[{$CellContext`G$$ = 0., $CellContext`Kd$$ = 
+     6900., $CellContext`P$$ = 0.08, $CellContext`\[Omega]$$ = 62., 
+     Typeset`show$$ = True, Typeset`bookmarkList$$ = {}, 
+     Typeset`bookmarkMode$$ = "Menu", Typeset`animator$$, Typeset`animvar$$ = 
+     1, Typeset`name$$ = "\"untitled\"", Typeset`specs$$ = {{
+       Hold[$CellContext`P$$], 0.001, 10}, {
+       Hold[$CellContext`Kd$$], 1, 20000}, {
+       Hold[$CellContext`\[Omega]$$], 0, 1000}, {
+       Hold[$CellContext`G$$], 0, 1000}}, Typeset`size$$ = {
+     360., {111., 115.}}, Typeset`update$$ = 0, Typeset`initDone$$, 
+     Typeset`skipInitDone$$ = True}, 
+     DynamicBox[Manipulate`ManipulateBoxes[
+      1, StandardForm, 
+       "Variables" :> {$CellContext`G$$ = 0, $CellContext`Kd$$ = 
+         1, $CellContext`P$$ = 0.001, $CellContext`\[Omega]$$ = 0}, 
+       "ControllerVariables" :> {}, 
+       "OtherVariables" :> {
+        Typeset`show$$, Typeset`bookmarkList$$, Typeset`bookmarkMode$$, 
+         Typeset`animator$$, Typeset`animvar$$, Typeset`name$$, 
+         Typeset`specs$$, Typeset`size$$, Typeset`update$$, 
+         Typeset`initDone$$, Typeset`skipInitDone$$}, "Body" :> Plot[
+         $CellContext`pBound[$CellContext`d, $CellContext`P$$, \
+$CellContext`Kd$$, $CellContext`\[Omega]$$, $CellContext`G$$], \
+{$CellContext`d, 1, 10000}, PlotRange -> {{0, 10000}, {0, 1}}], 
+       "Specifications" :> {{$CellContext`P$$, 0.001, 10}, {$CellContext`Kd$$,
+           1, 20000}, {$CellContext`\[Omega]$$, 0, 1000}, {$CellContext`G$$, 
+          0, 1000}}, "Options" :> {}, "DefaultOptions" :> {}],
+      ImageSizeCache->{405., {198., 204.}},
+      SingleEvaluation->True],
+     Deinitialization:>None,
+     DynamicModuleValues:>{},
+     SynchronousInitialization->True,
+     UndoTrackedVariables:>{Typeset`show$$, Typeset`bookmarkMode$$},
+     UnsavedVariables:>{Typeset`initDone$$},
+     UntrackedVariables:>{Typeset`size$$}], "Manipulate",
+    Deployed->True,
+    StripOnInput->False],
+   Manipulate`InterpretManipulate[1]], "\[IndentingNewLine]", 
+  "\[IndentingNewLine]", "\[IndentingNewLine]", "\[IndentingNewLine]", 
+  "\[IndentingNewLine]", "\[IndentingNewLine]"}]], "Input",
+ CellChangeTimes->{{3.813260918653008*^9, 3.8132611562636547`*^9}, 
+   3.813261189110449*^9},ExpressionUUID->"bb6d78c5-1b25-4d54-9d7e-\
+04e6c8371a4b"],
+
+Cell[CellGroupData[{
+
+Cell[BoxData[{
+ RowBox[{
+  RowBox[{"pBound2", "[", 
+   RowBox[{"d_", ",", "kd_", ",", "ko_", ",", "P_", ",", "\[Omega]_"}], "]"}],
+   " ", "=", " ", 
+  RowBox[{
+   RowBox[{"(", 
+    RowBox[{
+     RowBox[{"(", 
+      RowBox[{
+       RowBox[{"(", 
+        RowBox[{"d", "/", "kd"}], ")"}], "*", "P", "*", "\[Omega]"}], ")"}], 
+     "+", "P"}], ")"}], " ", "/", 
+   RowBox[{"(", 
+    RowBox[{
+     RowBox[{"(", 
+      RowBox[{
+       RowBox[{"(", 
+        RowBox[{"d", "/", "kd"}], ")"}], "*", "P", "*", "\[Omega]"}], ")"}], 
+     "+", "P", " ", "+", " ", 
+     RowBox[{"(", 
+      RowBox[{"d", "/", "kd"}], ")"}], "+", 
+     RowBox[{
+      RowBox[{"(", 
+       RowBox[{"d", "/", "kd"}], ")"}], "*", 
+      RowBox[{"(", 
+       RowBox[{"d", "/", "ko"}], ")"}]}], "+", "1"}], 
+    ")"}]}]}], "\[IndentingNewLine]", 
+ RowBox[{"Manipulate", "[", 
+  RowBox[{
+   RowBox[{"Plot", "[", 
+    RowBox[{
+     RowBox[{"pBound2", "[", 
+      RowBox[{"d", ",", "kd", ",", "ko", ",", "P", ",", "\[Omega]"}], "]"}], 
+     ",", " ", 
+     RowBox[{"{", 
+      RowBox[{"d", ",", " ", "1", ",", "3000"}], "}"}], ",", " ", 
+     RowBox[{"PlotRange", "\[Rule]", 
+      RowBox[{"{", 
+       RowBox[{
+        RowBox[{"{", 
+         RowBox[{"0", " ", ",", "3000"}], "}"}], ",", " ", 
+        RowBox[{"{", 
+         RowBox[{"0", ",", " ", "1"}], "}"}]}], "}"}]}]}], "]"}], ",", " ", 
+   RowBox[{"{", 
+    RowBox[{"P", ",", " ", ".001", ",", "10"}], "}"}], ",", " ", 
+   RowBox[{"{", 
+    RowBox[{"kd", ",", " ", "1", ",", " ", "500000"}], "}"}], ",", 
+   RowBox[{"{", 
+    RowBox[{"ko", ",", " ", "1", ",", " ", "10"}], "}"}], ",", " ", 
+   RowBox[{"{", 
+    RowBox[{"\[Omega]", ",", " ", "0", ",", " ", "5000"}], "}"}]}], 
+  "]"}]}], "Input",
+ CellChangeTimes->{{3.813261239987195*^9, 3.81326124034417*^9}, {
+  3.813261279554389*^9, 3.8132612796342773`*^9}, {3.8132613781000834`*^9, 
+  3.813261378168749*^9}, {3.8132616143350554`*^9, 3.813261619104601*^9}, {
+  3.813261726099131*^9, 3.813261728837315*^9}, {3.813262038676104*^9, 
+  3.813262038761014*^9}},
+ CellLabel->"In[63]:=",ExpressionUUID->"e0628c3e-db88-4b16-b95e-98ffd8b05dac"],
+
+Cell[BoxData[
+ FractionBox[
+  RowBox[{"P", "+", 
+   FractionBox[
+    RowBox[{"d", " ", "P", " ", "\[Omega]"}], "kd"]}], 
+  RowBox[{"1", "+", 
+   FractionBox["d", "kd"], "+", 
+   FractionBox[
+    SuperscriptBox["d", "2"], 
+    RowBox[{"kd", " ", "ko"}]], "+", "P", "+", 
+   FractionBox[
+    RowBox[{"d", " ", "P", " ", "\[Omega]"}], "kd"]}]]], "Output",
+ CellChangeTimes->{3.813261201374909*^9, 3.813261242172801*^9, 
+  3.8132612813734627`*^9, 3.8132613803662987`*^9, 3.8132616211451283`*^9, 
+  3.813261730966386*^9, 3.813262040287249*^9},
+ CellLabel->"Out[63]=",ExpressionUUID->"d244c502-f23e-42dc-97dd-dc345a912f41"],
+
+Cell[BoxData[{
+ RowBox[{
+  TagBox[
+   StyleBox[
+    DynamicModuleBox[{$CellContext`kd$$ = 500000., $CellContext`ko$$ = 
+     1., $CellContext`P$$ = 0.27, $CellContext`\[Omega]$$ = 5000., 
+     Typeset`show$$ = True, Typeset`bookmarkList$$ = {}, 
+     Typeset`bookmarkMode$$ = "Menu", Typeset`animator$$, Typeset`animvar$$ = 
+     1, Typeset`name$$ = "\"untitled\"", Typeset`specs$$ = {{
+       Hold[$CellContext`P$$], 0.001, 10}, {
+       Hold[$CellContext`kd$$], 1, 500000}, {
+       Hold[$CellContext`ko$$], 1, 10}, {
+       Hold[$CellContext`\[Omega]$$], 0, 5000}}, Typeset`size$$ = {
+     360., {112., 116.}}, Typeset`update$$ = 0, Typeset`initDone$$, 
+     Typeset`skipInitDone$$ = True}, 
+     DynamicBox[Manipulate`ManipulateBoxes[
+      1, StandardForm, 
+       "Variables" :> {$CellContext`kd$$ = 1, $CellContext`ko$$ = 
+         1, $CellContext`P$$ = 0.001, $CellContext`\[Omega]$$ = 0}, 
+       "ControllerVariables" :> {}, 
+       "OtherVariables" :> {
+        Typeset`show$$, Typeset`bookmarkList$$, Typeset`bookmarkMode$$, 
+         Typeset`animator$$, Typeset`animvar$$, Typeset`name$$, 
+         Typeset`specs$$, Typeset`size$$, Typeset`update$$, 
+         Typeset`initDone$$, Typeset`skipInitDone$$}, "Body" :> Plot[
+         $CellContext`pBound2[$CellContext`d, $CellContext`kd$$, \
+$CellContext`ko$$, $CellContext`P$$, $CellContext`\[Omega]$$], \
+{$CellContext`d, 1, 3000}, PlotRange -> {{0, 3000}, {0, 1}}], 
+       "Specifications" :> {{$CellContext`P$$, 0.001, 10}, {$CellContext`kd$$,
+           1, 500000}, {$CellContext`ko$$, 1, 10}, {$CellContext`\[Omega]$$, 
+          0, 5000}}, "Options" :> {}, "DefaultOptions" :> {}],
+      ImageSizeCache->{405., {199., 205.}},
+      SingleEvaluation->True],
+     Deinitialization:>None,
+     DynamicModuleValues:>{},
+     SynchronousInitialization->True,
+     UndoTrackedVariables:>{Typeset`show$$, Typeset`bookmarkMode$$},
+     UnsavedVariables:>{Typeset`initDone$$},
+     UntrackedVariables:>{Typeset`size$$}], "Manipulate",
+    Deployed->True,
+    StripOnInput->False],
+   Manipulate`InterpretManipulate[1]], "\[IndentingNewLine]", 
+  "\[IndentingNewLine]", 
+  RowBox[{"(*", " ", 
+   RowBox[{
+    RowBox[{"weak", " ", "promoter"}], ",", " ", 
+    RowBox[{
+    "assume", " ", "P", " ", "is", " ", "very", " ", "very", " ", "small"}], 
+    ",", " ", 
+    RowBox[{
+    "group", " ", "P", " ", "and", " ", "\[Omega]", " ", "into", " ", "one", 
+     " ", "parameter", " ", 
+     RowBox[{"\[Omega]", "'"}]}]}], "*)"}]}], "\[IndentingNewLine]", 
+ RowBox[{
+  RowBox[{"pBound2", "[", 
+   RowBox[{"d_", ",", "kd_", ",", "ko_", ",", "P_", ",", "\[Omega]_"}], "]"}],
+   " ", "=", " ", 
+  RowBox[{"(", 
+   RowBox[{
+    RowBox[{
+     RowBox[{"(", 
+      RowBox[{
+       RowBox[{"(", 
+        RowBox[{"d", "/", "kd"}], ")"}], "*", 
+       RowBox[{"\[Omega]", "'"}]}], ")"}], " ", "/", 
+     RowBox[{"(", 
+      RowBox[{
+       RowBox[{"(", 
+        RowBox[{
+         RowBox[{"(", 
+          RowBox[{"d", "/", "kd"}], ")"}], "*", 
+         RowBox[{"\[Omega]", "'"}]}], ")"}], "+", "P", " ", "+", " ", 
+       RowBox[{"(", 
+        RowBox[{"d", "/", "kd"}], ")"}], "+", 
+       RowBox[{
+        RowBox[{"(", 
+         RowBox[{"d", "/", "kd"}], ")"}], "*", 
+        RowBox[{"(", 
+         RowBox[{"d", "/", "ko"}], ")"}]}], "+", "1"}], ")"}]}], 
+    "\[IndentingNewLine]", 
+    RowBox[{"Manipulate", "[", 
+     RowBox[{
+      RowBox[{"Plot", "[", 
+       RowBox[{
+        RowBox[{"pBound2", "[", 
+         RowBox[{"d", ",", "kd", ",", "ko", ",", "P", ",", "\[Omega]"}], 
+         "]"}], ",", " ", 
+        RowBox[{"{", 
+         RowBox[{"d", ",", " ", "1", ",", "3000"}], "}"}], ",", " ", 
+        RowBox[{"PlotRange", "\[Rule]", 
+         RowBox[{"{", 
+          RowBox[{
+           RowBox[{"{", 
+            RowBox[{"0", " ", ",", "3000"}], "}"}], ",", " ", 
+           RowBox[{"{", 
+            RowBox[{"0", ",", " ", "1"}], "}"}]}], "}"}]}]}], "]"}], ",", " ", 
+      RowBox[{"{", 
+       RowBox[{"P", ",", " ", ".001", ",", "10"}], "}"}], ",", " ", 
+      RowBox[{"{", 
+       RowBox[{"kd", ",", " ", "1", ",", " ", "500000"}], "}"}], ",", 
+      RowBox[{"{", 
+       RowBox[{"ko", ",", " ", "1", ",", " ", "10"}], "}"}], ",", " ", 
+      RowBox[{"{", 
+       RowBox[{"\[Omega]", ",", " ", "0", ",", " ", "5000"}], "}"}]}], 
+     "]"}]}]}]}]}], "Input",
+ CellChangeTimes->{{3.813262223908349*^9, 3.813262224874353*^9}, {
+  3.813262366496173*^9, 3.813262404758647*^9}, {3.813262435699926*^9, 
+  3.8132624592293243`*^9}},ExpressionUUID->"5a59d5d4-0b5d-4346-b25f-\
+ce03a724ee49"]
+}, Open  ]]
+},
+WindowSize->{1373, 689},
+WindowMargins->{{4, Automatic}, {Automatic, 4}},
+FrontEndVersion->"12.1 for Mac OS X x86 (64-bit) (June 19, 2020)",
+StyleDefinitions->"Default.nb",
+ExpressionUUID->"dfa14a8c-3de9-43f4-a1cf-9013bcc76e27"
+]
+(* End of Notebook Content *)
+
+(* Internal cache information *)
+(*CellTagsOutline
+CellTagsIndex->{}
+*)
+(*CellTagsIndex
+CellTagsIndex->{}
+*)
+(*NotebookFileOutline
+Notebook[{
+Cell[558, 20, 2908, 67, 94, "Input",ExpressionUUID->"094532b0-d9ed-43e6-adb9-36d9d6eefbfd"],
+Cell[3469, 89, 2377, 46, 558, InheritFromParent,ExpressionUUID->"bb6d78c5-1b25-4d54-9d7e-04e6c8371a4b"],
+Cell[CellGroupData[{
+Cell[5871, 139, 2105, 58, 73, "Input",ExpressionUUID->"e0628c3e-db88-4b16-b95e-98ffd8b05dac"],
+Cell[7979, 199, 617, 15, 70, "Output",ExpressionUUID->"d244c502-f23e-42dc-97dd-dc345a912f41"],
+Cell[8599, 216, 4532, 108, 518, InheritFromParent,ExpressionUUID->"5a59d5d4-0b5d-4346-b25f-ce03a724ee49"]
+}, Open  ]]
+}
+]
+*)
+
+(* End of internal cache information *)
+

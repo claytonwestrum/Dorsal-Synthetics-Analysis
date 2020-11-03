@@ -1,6 +1,7 @@
 pdets = [.01:.01:1];
 nTrials = 2;
 for k = 1:length(pdets)
+    k
     [fractive(k), take3pactive(k)] = pactiveSim('pdetect', pdets(k), 'nTrials', nTrials);
 end
 figure; 
