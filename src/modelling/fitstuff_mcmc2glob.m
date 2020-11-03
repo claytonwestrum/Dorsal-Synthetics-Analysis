@@ -8,7 +8,7 @@ md = "simpleweak"; %simpleweak, tfdriven, artifact, fourstate,...
 metric = "fraction"; %fraction, fluo
 lsq = false;
 noOff = false;
-nSimu = 1E4;
+nSimu = 1E3; %1E3 is bad for real stats but good for debugging. need 1E4-1E6 for good stats
 minKD = 200;
 maxKD = 1E4;
 minw = 1E-2; %1E-2
@@ -24,6 +24,7 @@ fixedw = NaN;
 enhancerSubset = {};
 scoreSubset = [];
 positionSubset = [];
+usesBatches = false; %fit all the data across embryos and not just means 
 
 %options must be specified as name, value pairs. unpredictable errors will
 %occur, otherwise.
@@ -71,18 +72,27 @@ ys = {};
 dsid = [];
 T = [];
 Y = [];
+T_batch = [];
+Y_batch = [];
+dsid_batch = [];
 for k = 1:nSets
     cond = strcmpi(dorsalResultsDatabase.mother,'2x') & strcmpi(dorsalResultsDatabase.enhancer, enhancers{k});
     xo{k} = dorsalResultsDatabase.dorsalFluoBins(cond);
     if metric == "fraction"
         yo{k} = dorsalResultsDatabase.meanFracFluoEmbryo(cond);
+        yo_batch{k} = dorsalResultsDatabase.fracFluoEmbryo(cond, :);
     elseif metric == "fluo"
         yo{k} = dorsalResultsDatabase.meanAllMaxFluoEmbryo(cond);
+        yo_batch{k} = dorsalResultsDatabase.allMaxFluoEmbryo(cond, :);
     end
+    
+     xo_batch{k} = repmat(xo{k}, [1, size(yo_batch{k}, 2)]);
+    [xs_batch{k}, ys_batch{k}]= processVecs(xo_batch{k}, yo_batch{k}, xrange(k, :));
     
     [xs{k}, ys{k}]= processVecs(xo{k}, yo{k}, xrange(k, :));
     dsid = [dsid; k*ones(size(xs{k}))];
-    
+    dsid_batch = [dsid_batch; k*ones(size(xo{k}))];
+
     if isnan(xrange(k, 1))
         xrange(k, 1) = min(xo{k});
     end
@@ -94,11 +104,25 @@ for k = 1:nSets
     
     T = [T; xs{k}];
     Y = [Y; ys{k}];
+    T_batch = [T_batch; xo{k}];
+    Y_batch = [Y_batch; ys_batch{k}];
 end
 
 data.ydata = [T, Y];
 data.dsid = dsid;
 data.X =  [T dsid];
+
+data_batch = {};
+for k = 1:size(Y_batch, 2)
+    data_batch{k}.ydata = [T_batch Y_batch(:, k)];
+    data_batch{k}.X =  [T_batch dsid_batch];
+    data_batch{k}.dsid = dsid_batch;
+end
+
+if useBatches
+    disp('Doing batched fits');
+    data = data_batch;
+end
 
 %%
 
@@ -170,7 +194,11 @@ model = struct;
 %%ssfun computes residuals for the mcmc function. mdl is used for computing
 %%function values when plotting
 mdl = getFitFuns(expmnt, md, metric, noOff);
-model.ssfun = @(params, data) sum( (data.ydata(:,2)-mdl(data.X(:,1), params)).^2 );
+if useBatches
+    model.modelfun   = mdl; % use mcmcrun generated ssfun instead
+else
+    model.ssfun = @(params, data) sum( (data.ydata(:,2)-mdl(data.X(:,1), params)).^2 );
+end
 
 if lsq
     model.sigma2 = mse;
@@ -224,17 +252,24 @@ if displayFigures
     til = tiledlayout(1, nSets);
     dsid2 = [];
     
-    xx = (0:10:max(data.X(:,1)))';
+    xx = (0:10:max(T))';
     
     for k = 1:nSets
         dsid2 = [dsid2; k*ones(length(xx), 1)];
     end
     X2 = [repmat(xx, nSets, 1), dsid2];
     
+     if results.nbatch ~= 1
+        for k = 1:results.nbatch
+          data_mcmcpred{k} =   repmat(xx, nSets, 1);
+        end
+    else
+        data_mcmcpred = repmat(xx, nSets, 1);
+    end
     
     
     %get the prediction intervals for the parameters and function vals
-    out = mcmcpred(results,chain,[],repmat(xx, nSets, 1), mdl);
+    out = mcmcpred(results,chain,[],data_mcmcpred, mdl);
     
     % mcmcpredplot(out);
     nn = (size(out.predlims{1}{1},1) + 1) / 2;
