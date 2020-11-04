@@ -191,7 +191,9 @@ end
 
 model = struct;
 
-mdl = getFitFuns(expmnt, md, metric, noOff);
+mdl = @(x, p) simpleweak(x, p, 'noOff', noOff, 'fraction',...
+            metric=="fraction", 'dimer', contains(md, "dimer"), 'expmnt', expmnt);
+        
 model.modelfun   = mdl; % use mcmcrun generated ssfun instead
 
 
