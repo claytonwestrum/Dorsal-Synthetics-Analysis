@@ -191,14 +191,9 @@ end
 
 model = struct;
 
-%%ssfun computes residuals for the mcmc function. mdl is used for computing
-%%function values when plotting
 mdl = getFitFuns(expmnt, md, metric, noOff);
-% if useBatches
-    model.modelfun   = mdl; % use mcmcrun generated ssfun instead
-% else
-%     model.ssfun = @(params, data) sum( (data.ydata(:,2)-mdl(data.X(:,1), params)).^2 );
-% end
+model.modelfun   = mdl; % use mcmcrun generated ssfun instead
+
 
 if lsq
     model.sigma2 = mse;
