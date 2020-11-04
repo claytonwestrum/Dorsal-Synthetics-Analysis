@@ -4,10 +4,10 @@ function [results,chain,s2chain]  = fitstuff_mcmc2glob(varargin)
 load([resultsFolder, filesep, 'dorsalResultsDatabase.mat'], 'dorsalResultsDatabase')
 
 expmnt = "affinities"; %affinities, phases or phaff
-md = "simpleweak"; %simpleweak, tfdriven, artifact, fourstate,...
+md = "simpleweak"; %simpleweak, simpleweakdimer, repression, tfdriven, artifact, fourstate
 metric = "fraction"; %fraction, fluo
 lsq = false;
-noOff = false;
+noOff = true;
 nSimu = 1E3; %1E3 is bad for real stats but good for debugging. need 1E4-1E6 for good stats
 minKD = 200;
 maxKD = 1E4;
@@ -24,7 +24,7 @@ fixedw = NaN;
 enhancerSubset = {};
 scoreSubset = [];
 positionSubset = [];
-useBatches = false; %fit all the data across embryos and not just means 
+useBatches = true; %fit all the data across embryos and not just means 
 
 %options must be specified as name, value pairs. unpredictable errors will
 %occur, otherwise.
@@ -145,11 +145,11 @@ end
 
 if noOff && metric=="fluo"
     %ignore the offset in the initial parameters and bounds
-    p0 = p0(1:end-1);
-    lb = lb(1:end-1);
-    ub = ub(1:end-1);
-    k0 = k0(1:end-1);
-    names = names(1:end-1);
+    p0(names=="offset") = [];
+    lb(names=="offset") = [];
+    ub(names=="offset") = [];
+    k0(names=="offset") = [];
+    names(names=="offset") = [];
 end
 
 % put the initial parameters and bounds in a form that the mcmc function
@@ -191,11 +191,11 @@ end
 
 model = struct;
 
-mdl = @(x, p) simpleweak(x, p, 'noOff', noOff, 'fraction',...
-            metric=="fraction", 'dimer', contains(md, "dimer"), 'expmnt', expmnt);
+simpleWeakOptions = struct('noOff', noOff, 'fraction', metric=="fraction",...
+    'dimer', contains(md, "dimer"), 'expmnt', expmnt);
+mdl = @(x, p) simpleweak(x, p, simpleWeakOptions);
         
-model.modelfun   = mdl; % use mcmcrun generated ssfun instead
-
+model.modelfun   = mdl;  %use mcmcrun generated ssfun 
 
 if lsq
     model.sigma2 = mse;

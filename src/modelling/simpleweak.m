@@ -1,18 +1,10 @@
-function yfit = simpleweak(x, params, varargin)
+function yfit = simpleweak(x, params, options)
 %simplebinding in the weak promoter limit.
 
-noOff = false;
-fraction = false;
-dimer = false;
-
-
-%options must be specified as name, value pairs. unpredictable errors will
-%occur, otherwise.
-for i = 1:2:(numel(varargin)-1)
-    if i ~= numel(varargin)
-        eval([varargin{i} '=varargin{i+1};']);
-    end
-end
+options.noOff = false;
+options.fraction = false;
+options.dimer = false;
+options.expmnt = "affinities";
 
 
 if isstruct(x)
@@ -20,38 +12,36 @@ if isstruct(x)
     x = data.X(:, 1);
 end
 
-X = [];
+dsid = zeros(length(x), 1);
 n = 1;
-X(1, :) = [x(1), 1];
+dsid(1) = 1;
 for k = 2:length(x)
     if x(k) < x(k-1)
         n = n + 1;
     end
-    X(k, 1) = x(k);
-    X(k, 2) = n;
+    dsid(k) = n;
 end
 
-dsid = X(:,2);     % unpack dataset id from X
 params = params(:)'; %need a row vec
 
-if ~noOff
+if ~options.noOff
     offset = params(max(dsid)+3);
 else
     offset = 0;
 end
 
-if ~fraction
+if ~options.fraction
     amp = params(max(dsid)+2);
 else
     amp = 1;
     offset = 0;
 end
 
-if expmnt=="affinities"
+if options.expmnt=="affinities"
     omegaDP = params(1);
     KD = params(2:max(dsid)+1)';
     KD = KD(dsid);
-elseif expmnt == "phases"
+elseif options.expmnt == "phases"
     KD = params(1);
     omegaDP = params(2:max(dsid)+1)';
     omegaDP = omegaDP(dsid);
@@ -62,14 +52,14 @@ elseif expmnt == "phaff"
     omegaDP = omegaDP(dsid);
     KD = [params(1:naff), params(1)*ones(1, nph-1)]';
     KD = KD(dsid);
-    if ~fraction
+    if ~options.fraction
         amp = params(nph+naff+1);
         offset = 0;
     end
 end
 
 
-if dimer
+if options.dimer
     k = params(end); %dimerization kd
     x = (1/2).*(k+2.*x+(-1).*k.^(1/2).*(k+4.*x).^(1/2)); %concentration of dorsal dimers
 end
