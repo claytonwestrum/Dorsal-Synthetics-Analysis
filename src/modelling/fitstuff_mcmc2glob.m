@@ -24,7 +24,7 @@ fixedw = NaN;
 enhancerSubset = {};
 scoreSubset = [];
 positionSubset = [];
-usesBatches = false; %fit all the data across embryos and not just means 
+useBatches = false; %fit all the data across embryos and not just means 
 
 %options must be specified as name, value pairs. unpredictable errors will
 %occur, otherwise.
@@ -194,11 +194,11 @@ model = struct;
 %%ssfun computes residuals for the mcmc function. mdl is used for computing
 %%function values when plotting
 mdl = getFitFuns(expmnt, md, metric, noOff);
-if useBatches
+% if useBatches
     model.modelfun   = mdl; % use mcmcrun generated ssfun instead
-else
-    model.ssfun = @(params, data) sum( (data.ydata(:,2)-mdl(data.X(:,1), params)).^2 );
-end
+% else
+%     model.ssfun = @(params, data) sum( (data.ydata(:,2)-mdl(data.X(:,1), params)).^2 );
+% end
 
 if lsq
     model.sigma2 = mse;
