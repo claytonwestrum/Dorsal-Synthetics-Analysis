@@ -1,10 +1,18 @@
 function yfit = simpleweak(x, params, options)
 %simplebinding in the weak promoter limit.
 
-options.noOff = false;
-options.fraction = false;
-options.dimer = false;
-options.expmnt = "affinities";
+if ~isfield(options, 'noOff')
+    options.noOff = false;
+end
+if ~isfield(options, 'fraction')
+    options.fraction = false;
+end
+if ~isfield(options, 'dimer')
+    options.dimer = false;
+end
+if ~isfield(options, 'expmnt')
+    options.expmnt = "affinities";
+end
 
 
 if isstruct(x)

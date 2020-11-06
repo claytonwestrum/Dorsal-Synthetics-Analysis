@@ -143,7 +143,7 @@ else
 end
 
 
-if noOff && metric=="fluo"
+if noOff
     %ignore the offset in the initial parameters and bounds
     p0(names=="offset") = [];
     lb(names=="offset") = [];
@@ -194,7 +194,10 @@ model = struct;
 simpleWeakOptions = struct('noOff', noOff, 'fraction', metric=="fraction",...
     'dimer', contains(md, "dimer"), 'expmnt', expmnt);
 mdl = @(x, p) simpleweak(x, p, simpleWeakOptions);
-        
+
+%leaving this here in case it'll be useful in the future
+%     model.ssfun = @(params, data) sum( (data.ydata(:,2)-mdl(data.X(:,1), params)).^2 );
+
 model.modelfun   = mdl;  %use mcmcrun generated ssfun 
 
 if lsq
