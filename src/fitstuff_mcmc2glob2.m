@@ -1,4 +1,4 @@
-function [results,chain,s2chain]  = fitstuff_mcmc2glob(varargin)
+function [results,chain,s2chain]  = fitstuff_mcmc2glob2(varargin)
 
 [~, resultsFolder] = getDorsalFolders;
 load([resultsFolder, filesep, 'dorsalResultsDatabase.mat'], 'dorsalResultsDatabase')
@@ -33,6 +33,10 @@ for i = 1:2:(numel(varargin)-1)
     if i ~= numel(varargin)
         eval([varargin{i} '=varargin{i+1};']);
     end
+end
+
+if noAverage
+    useBatches = false;
 end
 
 if expmnt == "phaff"
@@ -116,7 +120,7 @@ if ~noAverage
 end
 
 data_batch = {};
-for k = 1:size(Y_batch, 2)
+for k = 1:size(Y_batch, 2) 
     data_batch{k}.ydata = [T_batch Y_batch(:, k)];
     data_batch{k}.X =  [T_batch dsid_batch];
     data_batch{k}.dsid = dsid_batch;
@@ -155,41 +159,8 @@ if noOff
     names(names=="offset") = [];
 end
 
-% put the initial parameters and bounds in a form that the mcmc function
-% accepts
-params = cell(1, length(k0));
-pri_mu = NaN; %default prior gaussian mean
-pri_sig = Inf; %default prior gaussian variance
-localflag = 0; %is this local to this dataset or shared amongst batches?
 
 
-for i = 1:length(k0)
-    
-    targetflag = 1; %is this optimized or not? if this is set to 0, the parameter stays at a constant value equal to the initial value.
-    
-    if ~isnan(fixedKD) && contains(names(i), "KD")
-        k0(i) = fixedKD;
-        targetflag = 0;
-    end
-    
-    if ~isnan(fixedOffset) && contains(names(i), "off")
-        k0(i) = fixedOffset;
-        targetflag = 0;
-    end
-    
-    if ~isnan(fixedR) && contains(names(i), "R")
-        k0(i) = fixedR;
-        targetflag = 0;
-    end
-    
-    if ~isnan(fixedw) && contains(names(i), "w")
-        k0(i) = fixedw;
-        targetflag = 0;
-    end
-    
-    params{1, i} = {names(i),k0(i), lb(i), ub(i), pri_mu, pri_sig, targetflag, localflag};
-    
-end
 
 
 model = struct;
@@ -198,12 +169,40 @@ simpleWeakOptions = struct('noOff', noOff, 'fraction', metric=="fraction",...
     'dimer', contains(md, "dimer"), 'expmnt', expmnt);
 
 if noAverage
-    load([resultsFolder, filesep, 'dorsalResultsDatabase.mat'], 'combinedCompiledProjects_allEnhancers')
-    ccp = combinedCompiledProjects_allEnhancers(strcmpi({combinedCompiledProjects_allEnhancers.dataSet}, '1Dg11_2xDl' )  &...
-        [combinedCompiledProjects_allEnhancers.cycle]==12);
-    ccp = ccp(cellfun(@any, {ccp.particleFrames}));
-    data.ydata = [ [ccp.dorsalFluoFeature]' , cellfun(@max, {ccp.particleFluo3Slice})'];
-    simpleWeakOptions.onedsid = true;
+    for k = 1:length(enhancers)
+        load([resultsFolder, filesep, 'dorsalResultsDatabase.mat'], 'combinedCompiledProjects_allEnhancers')
+        ccp = combinedCompiledProjects_allEnhancers(contains({combinedCompiledProjects_allEnhancers.dataSet}, enhancers{k} ) &...
+           contains({combinedCompiledProjects_allEnhancers.dataSet}, '2x') &...
+            [combinedCompiledProjects_allEnhancers.cycle]==12);
+        if metric == "fraction"
+            ccp = ccp(cellfun(@any, {ccp.dorsalFluoFeature}));
+        end
+        isActive = cellfun(@any, {ccp.particleFrames});
+        if metric == "fluo"
+            data{k}.ydata = [ [ccp(isActive).dorsalFluoFeature]' , cellfun(@max, {ccp(isActive).particleFluo3Slice})'];
+        elseif metric == "fraction"
+            data{k}.ydata = [ [ccp.dorsalFluoFeature]' , isActive'];
+        end
+        simpleWeakOptions.onedsid = true;
+    end
+end
+
+% put the initial parameters and bounds in a form that the mcmc function
+% accepts
+params = cell(1, length(k0));
+pri_mu = NaN; %default prior gaussian mean
+pri_sig = Inf; %default prior gaussian variance
+localflag = 0; %is this local to this dataset or shared amongst batches?
+
+for i = 1:length(k0)
+    
+    targetflag = 1; %is this optimized or not? if this is set to 0, the parameter stays at a constant value equal to the initial value.
+    
+    if contains(names(i), 'KD')
+        localFlag = 1;
+    end
+    params{1, i} = {names(i),k0(i), lb(i), ub(i), pri_mu, pri_sig, targetflag, localflag};
+    
 end
 
 mdl = @(x, p) simpleweak(x, p, simpleWeakOptions);
@@ -311,8 +310,14 @@ if displayFigures
         nexttile;
         fillyy(xx,yyl,yyu,[0.9 0.9 0.9]);
         hold on
-        plot(xo{i}, yo{i}, 'o-', 'MarkerFaceColor', 'w', 'MarkerEdgeColor', 'k', 'Color', 'r');
-        plot( xo{i}(xo{i} >= xrange(i, 1) & xo{i} <=xrange(i, 2) ), yo{i}(xo{i} >=  xrange(i, 1) & xo{i} <= xrange(i, 2)),'o-','MarkerFaceColor', 'r', 'MarkerEdgeColor', 'r', 'Color', 'r');
+        if noAverage && metric=="fraction"
+            plot(data{i}.ydata(:, 1), data{i}.ydata(:, 2), '.', 'MarkerFaceColor', 'w', 'MarkerEdgeColor', 'k', 'Color', 'r');
+        else
+            plot(xo{i}, yo{i}, 'o-', 'MarkerFaceColor', 'w', 'MarkerEdgeColor', 'k', 'Color', 'r');
+        end
+        if ~noAverage
+            plot( xo{i}(xo{i} >= xrange(i, 1) & xo{i} <=xrange(i, 2) ), yo{i}(xo{i} >=  xrange(i, 1) & xo{i} <= xrange(i, 2)),'o-','MarkerFaceColor', 'r', 'MarkerEdgeColor', 'r', 'Color', 'r');
+        end
         plot(xx,yy,'-k')
         xlim([0,3500])
         

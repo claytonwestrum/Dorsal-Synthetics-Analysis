@@ -1,12 +1,15 @@
 close all;
 [~, resultsFolder] = getDorsalFolders;
 load([resultsFolder, filesep, 'dorsalResultsDatabase.mat'])
-% 
+% % 
 % a = combinedCompiledProjects_allEnhancers(strcmpi({combinedCompiledProjects_allEnhancers.dataSet}, '1Dg11_2xDl' )  &...
 %     [combinedCompiledProjects_allEnhancers.cycle]==12);
 
-a = combinedCompiledProjects_allEnhancers(...
-    [combinedCompiledProjects_allEnhancers.cycle]==12);
+a = combinedCompiledProjects_allEnhancers(strcmpi({combinedCompiledProjects_allEnhancers.dataSet}, '1Dg11_2xDl' )  &...
+    [combinedCompiledProjects_allEnhancers.cycle]==12 &  [combinedCompiledProjects_allEnhancers.dorsalFluoBin]==11);
+% 
+% a = combinedCompiledProjects_allEnhancers(...
+%     [combinedCompiledProjects_allEnhancers.cycle]==12);
 
 % b = a(cellfun(@any, {a.particleFrames}))
 
@@ -111,6 +114,9 @@ title(['max spot fluorescence. Lognormal fit';coeffText'])
 ylabel('pdf')
 xlabel('max fluo + 100 (au)')
 
+% mu = log(mean(fluos)) - 
+% varx = var(fluos)  
+% sigma2 = log( (1/2) + (1/2)*exp(  -2*mu*sqrt(  exp(4*mu) + 4*varx*exp(2*mu)  )  ) );
 
 %%
 fig5= figure;
