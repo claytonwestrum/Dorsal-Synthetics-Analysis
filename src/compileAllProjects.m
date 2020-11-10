@@ -1,5 +1,14 @@
 function dorsalResults = compileAllProjects(DataType)
-
+% 
+% dataSets = { '1Dg11_2xDl', '1DgW_2x_Leica',...
+%      '1Dg-5_2xDl',...
+%     '1DgS2_2xDl', '1DgAW3_2xDl', '1DgVVW3_2xDl', '1Dg-8D_2xDl', '1DgSVW2_2xDl','1DgVW_2xDl',...
+%     '1DgW_FFF', '1Dg-5_FFF', '1DgVW_FFF', '1Dg11_FFF','1Dg-8D_FFF'};
+% 
+% for k = 1:length(dataSets)
+%     compileAllProjects(dataSets{k})
+%     
+% end
 
 dataTypes = {'1Dg-8D_FFF', '1Dg11_2xDl', '1DgW_2x_Leica',...
     '1DgW_FFF', '1Dg-5_FFF', '1DgVW_FFF', '1Dg11_FFF', '1Dg-5_2xDl',...
@@ -19,10 +28,11 @@ compiledProjects = cell(1, length(prefixes));
 % 
 for k = 1:length(prefixes)
 %     prefixes{k}
-    clear LiveExperiment
-    TrackNuclei(prefixes{k},'retrack', 'nWorkers', 1);
+%     clear LiveExperiment
+%     TrackNuclei(prefixes{k},'retrack', 'nWorkers', 1);
 %     integrateSchnitzFluo(prefixes{k});
 %     TrackmRNADynamics(prefixes{k});
+    fit3DGaussiansToAllSpots(prefixes{k}, 1, 'nWorkers', 20)
     CompileParticles(prefixes{k},  'minBinSize', 0, 'MinParticles', 0,...
         'yToManualAlignmentPrompt');
     alignCompiledParticlesByAnaphase(prefixes{k});

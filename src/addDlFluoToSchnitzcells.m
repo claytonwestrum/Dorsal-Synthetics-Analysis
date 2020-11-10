@@ -120,7 +120,7 @@ end
 nc12Schnitz = [schnitzcells.cycle] == 12;
 fluoFeatureNc12Schnitz = [schnitzcells(nc12Schnitz).FluoFeature];
 usefulNc12Schnitz = sum(~isnan(fluoFeatureNc12Schnitz));
-assert(usefulNc12Schnitz > 14,'very few good nuclei in this dataset,')
+% assert(usefulNc12Schnitz > 11,'very few good nuclei in this dataset,')
 
 
 
