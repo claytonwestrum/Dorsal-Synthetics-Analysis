@@ -164,4 +164,22 @@ else
     [results,chain,s2chain,~]=mcmcrun(model,data,params,options,results);
 end
 
+if displayFigures
+    
+    burnInTime = .25; %let's burn the first 25% of the chain just in case
+    chain = chain(round(burnInTime*nSimu):nSimu, :);
+    if ~isempty(s2chain)
+        s2chain = s2chain(round(.25*nSimu):nSimu, :);
+    end
+    
+    chainfig = figure(); clf
+    mcmcplot(chain,[],results,'chainpanel')
+    
+    % Function chainstats lists some statistics, including the estimated Monte Carlo error of the estimates.
+    %geweke is a measure of whether things converged between 0 and 1.
+    chainstats(chain,results)
+    
+    
+    
+end
 end

@@ -40,6 +40,10 @@ if expmnt == "phaff"
     noOff = true;
 end
 
+if noAverage
+    useBatches = false;
+end
+
 enhancers_1dg = {'1Dg11'};
 enhancers_aff =  {'1DgS2', '1DgW', '1DgAW3', '1DgSVW2', '1DgVVW3', '1DgVW'};
 enhancers_ph = {'1Dg-5', '1Dg-8D'};
